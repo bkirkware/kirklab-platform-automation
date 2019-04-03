@@ -14,16 +14,16 @@ resources:
 - name: env
   type: git
   source:
-    uri: git@github.com:bkirkware/kirklab-env
+    uri: ((platform-automation-pipelines-kirklab-env))
     private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
     branch: master
 - name: installation
   type: s3
   source:
-    access_key_id: ((s3.access_key_id))
-    bucket: ((s3.buckets.installation))
-    region_name: ((s3.region_name))
-    secret_access_key: ((s3.secret_access_key))
+    access_key_id: ((aws_access_key_id))
+    bucket: ((aws_buckets_installation))
+    region_name: ((aws_region_name))
+    secret_access_key: ((aws_secret_access_key))
     regexp: installation-(.*).zip
 jobs:
 - name: export-installation
@@ -44,18 +44,19 @@ jobs:
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       input_mapping:
         files: env
+      output_mapping:
+        interpolated-files: env
       params:
         # all required
         CREDHUB_CA_CERT: ((credhub_ca_cert))
         CREDHUB_CLIENT: ((credhub_client))
         CREDHUB_SECRET: ((credhub_secret))
         CREDHUB_SERVER: ((credhub_server))
-        PREFIX: /kirklab
+        PREFIX: /((foundation))
+        ENV_FILE: ((foundation))/env/env.yml
     - task: export-installation
       image: platform-automation-image
       file: platform-automation-tasks/tasks/export-installation.yml
-      input_mapping:
-        env: interpolated-files
     - put: installation
       params:
         file: installation/installation-*.zip
