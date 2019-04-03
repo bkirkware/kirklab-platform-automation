@@ -10,7 +10,7 @@ resources:
   type: time
   source:
     interval: 24h
-    
+
 - name: config
   type: git
   source:
@@ -112,7 +112,7 @@ jobs:
       CREDHUB_SECRET: ((credhub_secret))
       CREDHUB_SERVER: ((credhub_server))
       CREDHUB_CA_CERT: ((credhub_ca_cert))
-      PREFIX: '/kirklab'
+      PREFIX: /((foundation))
       INTERPOLATION_PATH: "download-product-configs"
     input_mapping:
       files: config
@@ -152,7 +152,7 @@ jobs:
       CREDHUB_SECRET: ((credhub_secret))
       CREDHUB_SERVER: ((credhub_server))
       CREDHUB_CA_CERT: ((credhub_ca_cert))
-      PREFIX: '/kirklab'
+      PREFIX: /((foundation))
       INTERPOLATION_PATH: "download-product-configs"
     input_mapping:
       files: config
@@ -188,7 +188,7 @@ jobs:
       CREDHUB_SECRET: ((credhub_secret))
       CREDHUB_SERVER: ((credhub_server))
       CREDHUB_CA_CERT: ((credhub_ca_cert))
-      PREFIX: '/kirklab'
+      PREFIX: /((foundation))
       INTERPOLATION_PATH: "download-product-configs"
     input_mapping:
       files: config
@@ -198,7 +198,7 @@ jobs:
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product.yml
     params:
-      CONFIG_FILE: download-product-configs/pas.yml
+      CONFIG_FILE: download-product-configs/pas-srt.yml
     output_mapping: {downloaded-stemcell: pas-srt-stemcell}
   - aggregate:
     - put: pas-srt-product

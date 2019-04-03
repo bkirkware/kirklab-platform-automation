@@ -57,6 +57,8 @@ jobs:
     - task: export-installation
       image: platform-automation-image
       file: platform-automation-tasks/tasks/export-installation.yml
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
     - put: installation
       params:
         file: installation/installation-*.zip
