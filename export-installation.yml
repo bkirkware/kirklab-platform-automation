@@ -14,8 +14,8 @@ resources:
 - name: env
   type: git
   source:
-    uri: git@github.com:bkirkware/kirklab-platform-automation
-    private_key: ((platform-automation-pipelines-deploy-key-readonly.private_key))
+    uri: git@github.com:bkirkware/kirklab-env
+    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
     branch: master
 - name: installation
   type: s3
@@ -39,9 +39,23 @@ jobs:
         globs: ["*tasks*.zip"]
         unpack: true
     - get: env
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      input_mapping:
+        files: env
+      params:
+        # all required
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        PREFIX: /kirklab
     - task: export-installation
       image: platform-automation-image
       file: platform-automation-tasks/tasks/export-installation.yml
+      input_mapping:
+        env: interpolated-files
     - put: installation
       params:
         file: installation/installation-*.zip
