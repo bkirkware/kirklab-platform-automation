@@ -68,7 +68,7 @@ resources:
 - name: platform-automation-pivnet
   type: pivnet
   source:
-    api_token: ((pivnet_token))
+    api_token: ((pivnet-refresh-token))
     product_slug: platform-automation
     product_version: 2\.(.*)
     sort_by: semver
