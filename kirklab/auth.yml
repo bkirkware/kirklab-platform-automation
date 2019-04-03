@@ -1,0 +1,4 @@
+---
+username: admin
+password: ((opsman-password))
+decryption-passphrase: ((opsman-decryption-passphrase))

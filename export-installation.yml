@@ -1,0 +1,46 @@
+---
+resource_types:
+- name: pivnet
+  type: docker-image
+  source:
+    repository: pivotalcf/pivnet-resource
+    tag: latest-final
+resources:
+- name: platform-automation
+  type: pivnet
+  source:
+    product_slug: platform-automation
+    api_token: ((pivnet-refresh-token))
+- name: env
+  type: git
+  source:
+    uri: git@github.com:bkirkware/kirklab-platform-automation
+    private_key: ((platform-automation-pipelines-deploy-key-readonly.private_key))
+    branch: master
+- name: installation
+  type: s3
+  source:
+    access_key_id: ((s3.access_key_id))
+    bucket: kirklab-platform-automation
+    region_name: ((s3.region_name))
+    secret_access_key: ((s3.secret_access_key))
+jobs:
+- name: export-installation
+  plan:
+    - get: platform-automation-image
+      resource: platform-automation
+      params:
+        globs: ["*image*.tgz"]
+        unpack: true
+    - get: platform-automation-tasks
+      resource: platform-automation
+      params:
+        globs: ["*tasks*.zip"]
+        unpack: true
+    - get: env
+    - task: export-installation
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/export-installation.yml
+    - put: installation
+      params:
+        file: installation/installation-*.zip
