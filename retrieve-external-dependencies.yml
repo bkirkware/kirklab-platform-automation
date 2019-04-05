@@ -113,7 +113,7 @@ jobs:
       CREDHUB_SERVER: ((credhub_server))
       CREDHUB_CA_CERT: ((credhub_ca_cert))
       PREFIX: /((foundation))
-      INTERPOLATION_PATH: "download-product-configs"
+      INTERPOLATION_PATH: "((foundation))/download-product-configs"
     input_mapping:
       files: config
     output_mapping:
@@ -122,7 +122,7 @@ jobs:
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product.yml
     params:
-      CONFIG_FILE: download-product-configs/healthwatch.yml
+      CONFIG_FILE: ((foundation))/download-product-configs/healthwatch.yml
     output_mapping: {downloaded-stemcell: healthwatch-stemcell}
   - aggregate:
     - put: healthwatch-product
@@ -153,7 +153,7 @@ jobs:
       CREDHUB_SERVER: ((credhub_server))
       CREDHUB_CA_CERT: ((credhub_ca_cert))
       PREFIX: /((foundation))
-      INTERPOLATION_PATH: "download-product-configs"
+      INTERPOLATION_PATH: "((foundation))/download-product-configs"
     input_mapping:
       files: config
     output_mapping:
@@ -162,7 +162,7 @@ jobs:
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product.yml
     params:
-      CONFIG_FILE: download-product-configs/opsman.yml
+      CONFIG_FILE: ((foundation))/download-product-configs/opsman.yml
   - aggregate:
     - put: opsman-product
       params:
@@ -189,7 +189,7 @@ jobs:
       CREDHUB_SERVER: ((credhub_server))
       CREDHUB_CA_CERT: ((credhub_ca_cert))
       PREFIX: /((foundation))
-      INTERPOLATION_PATH: "download-product-configs"
+      INTERPOLATION_PATH: "((foundation))/download-product-configs"
     input_mapping:
       files: config
     output_mapping:
@@ -198,7 +198,7 @@ jobs:
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product.yml
     params:
-      CONFIG_FILE: download-product-configs/pas-srt.yml
+      CONFIG_FILE: ((foundation))/download-product-configs/pas-srt.yml
     output_mapping: {downloaded-stemcell: pas-srt-stemcell}
   - aggregate:
     - put: pas-srt-product
