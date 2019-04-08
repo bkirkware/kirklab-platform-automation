@@ -222,3 +222,44 @@ jobs:
     - put: platform-automation-image
       params:
         file: platform-automation-pivnet/*image*.tgz
+
+jobs:
+- name: fetch-redis
+  plan:
+  - aggregate:
+    - get: daily
+      trigger: true
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: config
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub_client))
+      CREDHUB_SECRET: ((credhub_secret))
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))/download-product-configs"
+    input_mapping:
+      files: config
+    output_mapping:
+      interpolated-files: config
+  - task: download-redis-product-and-stemcell
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/download-product.yml
+    params:
+      CONFIG_FILE: ((foundation))/download-product-configs/redis.yml
+    output_mapping: {downloaded-stemcell: redis-stemcell}
+  - aggregate:
+    - put: redis-product
+      params:
+        file: downloaded-product/*.pivotal
+    - put: redis-stemcell
+      params:
+        file: redis-stemcell/*.tgz
