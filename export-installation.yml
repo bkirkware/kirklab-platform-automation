@@ -6,6 +6,11 @@ resource_types:
     repository: pivotalcf/pivnet-resource
     tag: latest-final
 resources:
+
+- name: daily
+  type: time
+  source:
+    interval: 24h
 - name: platform-automation
   type: pivnet
   source:
@@ -28,6 +33,8 @@ resources:
 jobs:
 - name: export-installation
   plan:
+    - get: daily
+      trigger: true
     - get: platform-automation-image
       resource: platform-automation
       params:
