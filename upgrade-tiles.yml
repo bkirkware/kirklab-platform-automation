@@ -1,4 +1,5 @@
 resources:
+
   - name: platform-automation-tasks
     type: s3
     source:
@@ -53,6 +54,56 @@ resources:
       bucket: ((aws_buckets_pivnet_products))
       regexp: p-healthwatch-(.*).pivotal
 
+  - name: redis-stemcell
+    type: s3
+    source:
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
+      regexp: redis-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
+
+  - name: redis-product
+    type: s3
+    source:
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
+      regexp: p-redis-(.*).pivotal
+
+  - name: redis-stemcell-config
+    type: s3
+    source:
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_assign_stemcell_config))
+      versioned_file: ((foundation))/redis/config.yml
+
+  - name: pas-srt-stemcell-config
+    type: s3
+    source:
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_assign_stemcell_config))
+      versioned_file: ((foundation))/pas-srt/config.yml
+
+  - name: healthwatch-stemcell-config
+    type: s3
+    source:
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_assign_stemcell_config))
+      versioned_file: ((foundation))/healthwatch/config.yml
+
+  - name: daily
+    type: time
+    source:
+      interval: 24h
+
   # configurations
   - name: configuration
     type: git
@@ -76,11 +127,25 @@ jobs:
           - get: platform-automation-image
             params:
               unpack: true
-            trigger: true
+            passed:
+              - fetch-pas-srt
           - get: platform-automation-tasks
             params:
               unpack: true
+            passed:
+              - fetch-pas-srt
           - get: pas-srt-product
+            trigger: true
+            passed:
+              - fetch-pas-srt
+          - get: pas-srt-stemcell
+            trigger: true
+            passed:
+              - fetch-pas-srt
+          - get: pas-srt-stemcell-config
+            trigger: true
+            passed:
+              - fetch-pas-srt
           - get: configuration
           - get: variable
       - task: credhub-interpolate
@@ -113,38 +178,6 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
-
-  - name: upload-stemcells
-    serial: true
-    plan:
-      - aggregate:
-          - get: platform-automation-image
-            params:
-              unpack: true
-            trigger: true
-          - get: platform-automation-tasks
-            params:
-              unpack: true
-          - get: pas-srt-stemcell
-            trigger: true
-          - get: healthwatch-stemcell
-            trigger: true
-          - get: configuration
-          - get: variable
-      - task: credhub-interpolate
-        image: platform-automation-image
-        file: platform-automation-tasks/tasks/credhub-interpolate.yml
-        params:
-          CREDHUB_CLIENT: ((credhub_client))
-          CREDHUB_SECRET: ((credhub_secret))
-          CREDHUB_SERVER: ((credhub_server))
-          CREDHUB_CA_CERT: ((credhub_ca_cert))
-          PREFIX: /((foundation))
-          INTERPOLATION_PATH: "((foundation))"
-        input_mapping:
-          files: configuration
-        output_mapping:
-          interpolated-files: configuration
       - task: upload-pas-srt-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/upload-stemcell.yml
@@ -153,12 +186,13 @@ jobs:
           stemcell: pas-srt-stemcell
         params:
           ENV_FILE: ((foundation))/env/env.yml
-      - task: upload-healthwatch-stemcell
+          FLOATING_STEMCELL: false
+      - task: assign-pas-srt-stemcell
         image: platform-automation-image
-        file: platform-automation-tasks/tasks/upload-stemcell.yml
+        file: platform-automation-tasks/tasks/assign-stemcell.yml
         input_mapping:
           env: configuration
-          stemcell: healthwatch-stemcell
+          config: pas-srt-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
 
@@ -169,11 +203,25 @@ jobs:
           - get: platform-automation-image
             params:
               unpack: true
-            trigger: true
+            passed:
+              - fetch-healthwatch
           - get: platform-automation-tasks
             params:
               unpack: true
+            passed:
+              - fetch-healthwatch
           - get: healthwatch-product
+            trigger: true
+            passed:
+              - fetch-healthwatch
+          - get: healthwatch-stemcell
+            trigger: true
+            passed:
+              - fetch-healthwatch
+          - get: healthwatch-stemcell-config
+            trigger: true
+            passed:
+              - fetch-healthwatch
           - get: configuration
           - get: variable
       - task: credhub-interpolate
@@ -198,6 +246,23 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+      - task: upload-healthwatch-stemcell
+        image: platform-automation-image
+        file: platform-automation-tasks/tasks/upload-stemcell.yml
+        input_mapping:
+          env: configuration
+          stemcell: healthwatch-stemcell
+        params:
+          ENV_FILE: ((foundation))/env/env.yml
+          FLOATING_STEMCELL: false
+      - task: assign-healthwatch-stemcell
+        image: platform-automation-image
+        file: platform-automation-tasks/tasks/assign-stemcell.yml
+        input_mapping:
+          env: configuration
+          config: healthwatch-stemcell-config
+        params:
+          ENV_FILE: ((foundation))/env/env.yml
 
   - name: apply-product-changes
     serial: true
@@ -207,10 +272,9 @@ jobs:
             params:
               unpack: true
             passed:
+              - upload-and-stage-redis
               - upload-and-stage-pas
               - upload-and-stage-healthwatch
-              - upload-stemcells
-            trigger: true
           - get: platform-automation-tasks
             params:
               unpack: true
@@ -237,3 +301,220 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+  - name: upload-and-stage-redis
+    serial: true
+    plan:
+      - aggregate:
+          - get: platform-automation-image
+            params:
+              unpack: true
+            passed:
+              - fetch-redis
+          - get: platform-automation-tasks
+            params:
+              unpack: true
+            passed:
+              - fetch-redis
+          - get: redis-product
+            trigger: true
+            passed:
+              - fetch-redis
+          - get: redis-stemcell
+            trigger: true
+            passed:
+              - fetch-redis
+          - get: redis-stemcell-config
+            trigger: true
+            passed:
+              - fetch-redis
+          - get: configuration
+          - get: variable
+      - task: credhub-interpolate
+        image: platform-automation-image
+        file: platform-automation-tasks/tasks/credhub-interpolate.yml
+        params:
+          CREDHUB_CLIENT: ((credhub_client))
+          CREDHUB_SECRET: ((credhub_secret))
+          CREDHUB_SERVER: ((credhub_server))
+          CREDHUB_CA_CERT: ((credhub_ca_cert))
+          PREFIX: /((foundation))
+          INTERPOLATION_PATH: "((foundation))"
+        input_mapping:
+          files: configuration
+        output_mapping:
+          interpolated-files: configuration
+      - task: upload-product
+        image: platform-automation-image
+        file: platform-automation-tasks/tasks/upload-product.yml
+        input_mapping:
+          product: redis-product
+          env: configuration
+        params:
+          ENV_FILE: ((foundation))/env/env.yml
+      - task: stage-product
+        image: platform-automation-image
+        file: platform-automation-tasks/tasks/stage-product.yml
+        input_mapping:
+          product: redis-product
+          env: configuration
+        params:
+          ENV_FILE: ((foundation))/env/env.yml
+      - task: upload-redis-stemcell
+        image: platform-automation-image
+        file: platform-automation-tasks/tasks/upload-stemcell.yml
+        input_mapping:
+          env: configuration
+          stemcell: redis-stemcell
+        params:
+          ENV_FILE: ((foundation))/env/env.yml
+          FLOATING_STEMCELL: false
+      - task: assign-redis-stemcell
+        image: platform-automation-image
+        file: platform-automation-tasks/tasks/assign-stemcell.yml
+        input_mapping:
+          env: configuration
+          config: redis-stemcell-config
+        params:
+          ENV_FILE: ((foundation))/env/env.yml
+  
+  - name: fetch-healthwatch
+    plan:
+    - aggregate:
+      - get: daily
+        trigger: true
+      - get: platform-automation-image
+        params:
+          unpack: true
+      - get: platform-automation-tasks
+        params:
+          unpack: true
+      - get: configuration
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))/download-product-configs"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: download-healthwatch-product-and-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/download-product.yml
+      params:
+        CONFIG_FILE: ((foundation))/download-product-configs/healthwatch.yml
+      input_mapping:
+        config: configuration
+      output_mapping: 
+        downloaded-stemcell: healthwatch-stemcell
+        assign-stemcell-config: healthwatch-stemcell-config
+    - aggregate:
+      - put: healthwatch-product
+        params:
+          file: downloaded-product/*.pivotal
+      - put: healthwatch-stemcell
+        params:
+          file: healthwatch-stemcell/*.tgz
+      - put: healthwatch-stemcell-config
+        params:
+          file: healthwatch-stemcell-config/config.yml
+  
+  
+  - name: fetch-pas-srt
+    plan:
+    - aggregate:
+      - get: daily
+        trigger: true
+      - get: platform-automation-image
+        params:
+          unpack: true
+      - get: platform-automation-tasks
+        params:
+          unpack: true
+      - get: configuration
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))/download-product-configs"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: download-pas-srt-product-and-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/download-product.yml
+      params:
+        CONFIG_FILE: ((foundation))/download-product-configs/pas-srt.yml
+      input_mapping:
+        config: configuration
+      output_mapping:
+        downloaded-stemcell: pas-srt-stemcell
+        assign-stemcell-config: pas-srt-stemcell-config
+    - aggregate:
+      - put: pas-srt-product
+        params:
+          file: downloaded-product/*.pivotal
+      - put: pas-srt-stemcell
+        params:
+          file: pas-srt-stemcell/*.tgz
+      - put: pas-srt-stemcell-config
+        params:
+          file: pas-srt-stemcell-config/config.yml
+  
+  - name: fetch-redis
+    plan:
+    - aggregate:
+      - get: daily
+        trigger: true
+      - get: platform-automation-image
+        params:
+          unpack: true
+      - get: platform-automation-tasks
+        params:
+          unpack: true
+      - get: configuration
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))/download-product-configs"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: download-redis-product-and-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/download-product.yml
+      params:
+        CONFIG_FILE: ((foundation))/download-product-configs/redis.yml
+      input_mapping:
+        config: configuration
+      output_mapping: 
+        downloaded-stemcell: redis-stemcell
+        assign-stemcell-config: redis-stemcell-config
+    - aggregate:
+      - put: redis-product
+        params:
+          file: downloaded-product/*.pivotal
+      - put: redis-stemcell
+        params:
+          file: redis-stemcell/*.tgz
+      - put: redis-stemcell-config
+        params:
+          file: redis-stemcell-config/config.yml

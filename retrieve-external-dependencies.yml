@@ -20,24 +20,6 @@ resources:
     submodules: all
     depth: 1
 
-- name: healthwatch-product
-  type: s3
-  source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_pivnet_products))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
-    regexp: p-healthwatch-(.*).pivotal
-
-- name: healthwatch-stemcell
-  type: s3
-  source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_pivnet_products))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
-    regexp: healthwatch-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-
 - name: opsman-product
   type: s3
   source:
@@ -46,24 +28,6 @@ resources:
     region_name: ((aws_region_name))
     secret_access_key: ((aws_secret_access_key))
     regexp: pcf-vsphere-(.*).ova
-
-- name: pas-srt-product
-  type: s3
-  source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_pivnet_products))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
-    regexp: srt-(.*).pivotal
-
-- name: pas-srt-stemcell
-  type: s3
-  source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_pivnet_products))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
-    regexp: pas-srt-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
 
 - name: platform-automation-pivnet
   type: pivnet
@@ -92,45 +56,6 @@ resources:
     regexp: platform-automation-image-(.*).tgz
 
 jobs:
-- name: fetch-healthwatch
-  plan:
-  - aggregate:
-    - get: daily
-      trigger: true
-    - get: platform-automation-image
-      params:
-        unpack: true
-    - get: platform-automation-tasks
-      params:
-        unpack: true
-    - get: config
-  - task: credhub-interpolate
-    image: platform-automation-image
-    file: platform-automation-tasks/tasks/credhub-interpolate.yml
-    params:
-      CREDHUB_CLIENT: ((credhub_client))
-      CREDHUB_SECRET: ((credhub_secret))
-      CREDHUB_SERVER: ((credhub_server))
-      CREDHUB_CA_CERT: ((credhub_ca_cert))
-      PREFIX: /((foundation))
-      INTERPOLATION_PATH: "((foundation))/download-product-configs"
-    input_mapping:
-      files: config
-    output_mapping:
-      interpolated-files: config
-  - task: download-healthwatch-product-and-stemcell
-    image: platform-automation-image
-    file: platform-automation-tasks/tasks/download-product.yml
-    params:
-      CONFIG_FILE: ((foundation))/download-product-configs/healthwatch.yml
-    output_mapping: {downloaded-stemcell: healthwatch-stemcell}
-  - aggregate:
-    - put: healthwatch-product
-      params:
-        file: downloaded-product/*.pivotal
-    - put: healthwatch-stemcell
-      params:
-        file: healthwatch-stemcell/*.tgz
 
 - name: fetch-opsman
   plan:
@@ -168,46 +93,6 @@ jobs:
       params:
         file: downloaded-product/*
 
-- name: fetch-pas-srt
-  plan:
-  - aggregate:
-    - get: daily
-      trigger: true
-    - get: platform-automation-image
-      params:
-        unpack: true
-    - get: platform-automation-tasks
-      params:
-        unpack: true
-    - get: config
-  - task: credhub-interpolate
-    image: platform-automation-image
-    file: platform-automation-tasks/tasks/credhub-interpolate.yml
-    params:
-      CREDHUB_CLIENT: ((credhub_client))
-      CREDHUB_SECRET: ((credhub_secret))
-      CREDHUB_SERVER: ((credhub_server))
-      CREDHUB_CA_CERT: ((credhub_ca_cert))
-      PREFIX: /((foundation))
-      INTERPOLATION_PATH: "((foundation))/download-product-configs"
-    input_mapping:
-      files: config
-    output_mapping:
-      interpolated-files: config
-  - task: download-pas-srt-product-and-stemcell
-    image: platform-automation-image
-    file: platform-automation-tasks/tasks/download-product.yml
-    params:
-      CONFIG_FILE: ((foundation))/download-product-configs/pas-srt.yml
-    output_mapping: {downloaded-stemcell: pas-srt-stemcell}
-  - aggregate:
-    - put: pas-srt-product
-      params:
-        file: downloaded-product/*.pivotal
-    - put: pas-srt-stemcell
-      params:
-        file: pas-srt-stemcell/*.tgz
-
 
 - name: fetch-platform-automation
   # We use the pivnet resource to bootstrap the pipeline,
@@ -222,44 +107,3 @@ jobs:
     - put: platform-automation-image
       params:
         file: platform-automation-pivnet/*image*.tgz
-
-jobs:
-- name: fetch-redis
-  plan:
-  - aggregate:
-    - get: daily
-      trigger: true
-    - get: platform-automation-image
-      params:
-        unpack: true
-    - get: platform-automation-tasks
-      params:
-        unpack: true
-    - get: config
-  - task: credhub-interpolate
-    image: platform-automation-image
-    file: platform-automation-tasks/tasks/credhub-interpolate.yml
-    params:
-      CREDHUB_CLIENT: ((credhub_client))
-      CREDHUB_SECRET: ((credhub_secret))
-      CREDHUB_SERVER: ((credhub_server))
-      CREDHUB_CA_CERT: ((credhub_ca_cert))
-      PREFIX: /((foundation))
-      INTERPOLATION_PATH: "((foundation))/download-product-configs"
-    input_mapping:
-      files: config
-    output_mapping:
-      interpolated-files: config
-  - task: download-redis-product-and-stemcell
-    image: platform-automation-image
-    file: platform-automation-tasks/tasks/download-product.yml
-    params:
-      CONFIG_FILE: ((foundation))/download-product-configs/redis.yml
-    output_mapping: {downloaded-stemcell: redis-stemcell}
-  - aggregate:
-    - put: redis-product
-      params:
-        file: downloaded-product/*.pivotal
-    - put: redis-stemcell
-      params:
-        file: redis-stemcell/*.tgz
