@@ -1625,18 +1625,7 @@ jobs:
             params:
               unpack: true
             passed:
-              - upload-and-stage-redis
               - upload-and-stage-pas
-              - upload-and-stage-healthwatch
-              - upload-and-stage-harbor
-              - upload-and-stage-metrics
-              - upload-and-stage-mysql
-              - upload-and-stage-pcc
-              - upload-and-stage-pks
-              - upload-and-stage-rabbitmq
-              - upload-and-stage-redis
-              - upload-and-stage-scdf
-              - upload-and-stage-scs
           - get: platform-automation-tasks
             params:
               unpack: true
