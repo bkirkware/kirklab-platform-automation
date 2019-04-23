@@ -5,6 +5,7 @@ resource_types:
     repository: pivotalcf/pivnet-resource
     tag: latest-final
 
+resources:
 - name: config
   type: git
   source:
@@ -23,65 +24,117 @@ resource_types:
     secret_access_key: ((aws_secret_access_key))
     regexp: pcf-vsphere-(.*).ova
 
-- name: platform-automation-pivnet
-  type: pivnet
-  source:
-    api_token: ((pivnet-refresh-token))
-    product_slug: platform-automation
-    product_version: 2\.(.*)
-    sort_by: semver
-
 - name: platform-automation-tasks
   type: s3
   source:
     access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_pivnet_products))
-    region_name: ((aws_region_name))
     secret_access_key: ((aws_secret_access_key))
-    regexp: platform-automation-tasks-(.*).zip
+    region_name: ((aws_region_name))
+    bucket: ((aws_buckets_pivnet_products))
+    regexp: .*tasks-(.*).zip
 
 - name: platform-automation-image
   type: s3
   source:
     access_key_id: ((aws_access_key_id))
+    secret_access_key: ((aws_secret_access_key))
+    region_name: ((aws_region_name))
     bucket: ((aws_buckets_pivnet_products))
+    regexp: .*image-(.*).tgz
+- name: env
+  type: git
+  source:
+    uri: ((platform-automation-pipelines-kirklab-env))
+    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
+    branch: master
+- name: installation
+  type: s3
+  source:
+    access_key_id: ((aws_access_key_id))
+    bucket: ((aws_buckets_installation))
     region_name: ((aws_region_name))
     secret_access_key: ((aws_secret_access_key))
-    regexp: platform-automation-image-(.*).tgz
+    regexp: installation-(.*).zip
 
 jobs:
 
-- name: fetch-opsman
+- name: export-installation
   plan:
-  - aggregate:
+    - get: platform-automation-image
+      params:
+        unpack: true
+      passed:
+        - fetch-opsman
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: env
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      input_mapping:
+        files: env
+      output_mapping:
+        interpolated-files: env
+      params:
+        # all required
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        PREFIX: /((foundation))
+        ENV_FILE: ((foundation))/env/env.yml
+    - task: export-installation
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/export-installation.yml
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+    - put: installation
+      params:
+        file: installation/installation-*.zip
+- name: upgrade-opsman
+  serial: true
+  plan:
     - get: platform-automation-image
       params:
         unpack: true
     - get: platform-automation-tasks
       params:
         unpack: true
-    - get: config
+  - get: env
+  - get: installation
+      passed:
+        - export-installation
   - task: credhub-interpolate
     image: platform-automation-image
     file: platform-automation-tasks/tasks/credhub-interpolate.yml
     params:
-      CREDHUB_CLIENT: ((credhub_client))
-      CREDHUB_SECRET: ((credhub_secret))
-      CREDHUB_SERVER: ((credhub_server))
-      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      CREDHUB_CLIENT: ((credhub-client))
+      CREDHUB_SECRET: ((credhub-secret))
+      CREDHUB_SERVER: ((credhub-server))
       PREFIX: /((foundation))
-      INTERPOLATION_PATH: "((foundation))/download-product-configs"
+      # A file path that includes env.yml, opsman.yml, download-opsman.yml
+      INTERPOLATION_PATH: ((foundation)) 
     input_mapping:
-      files: config
+      files: env
     output_mapping:
-      interpolated-files: config
+      interpolated-files: interpolated-configs
   - task: download-opsman-image
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product.yml
     params:
-      CONFIG_FILE: ((foundation))/download-product-configs/opsman.yml
-  - aggregate:
-    - put: opsman-product
-      params:
-        file: downloaded-product/*
-
+      CONFIG_FILE: download-opsman.yml
+    input_mapping:
+      config: interpolated-configs
+  - task: upgrade-opsman
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/upgrade-opsman.yml
+    input_mapping:
+      config: interpolated-configs
+      image: downloaded-product
+      secrets: interpolated-configs
+      state: env
+    params:
+      ENV_FILE: ((foundation))/env/env.yml
+      OPSMAN_CONFIG_FILE: ((foundation))/config/opsman.yml
+      STATE_FILE: ((foundation))/state/state.yml

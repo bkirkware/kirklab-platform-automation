@@ -315,11 +315,6 @@ resources:
       bucket: ((aws_buckets_assign_stemcell_config))
       versioned_file: ((foundation))/scs/config.yml
 
-  - name: daily
-    type: time
-    source:
-      interval: 24h
-
   # configurations
   - name: configuration
     type: git
@@ -339,8 +334,6 @@ jobs:
   - name: fetch-pas-srt
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -462,8 +455,6 @@ jobs:
   - name: fetch-harbor
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -577,8 +568,6 @@ jobs:
   - name: fetch-mysql
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -692,8 +681,6 @@ jobs:
   - name: fetch-pcc
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -807,8 +794,6 @@ jobs:
   - name: fetch-pks
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -922,8 +907,6 @@ jobs:
   - name: fetch-rabbitmq
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -1037,8 +1020,6 @@ jobs:
   - name: fetch-scdf
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -1152,8 +1133,6 @@ jobs:
   - name: fetch-scs
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -1267,8 +1246,6 @@ jobs:
   - name: fetch-metrics
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -1382,8 +1359,6 @@ jobs:
   - name: fetch-healthwatch
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true
@@ -1497,8 +1472,6 @@ jobs:
   - name: fetch-redis
     plan:
     - aggregate:
-      - get: daily
-        trigger: true
       - get: platform-automation-image
         params:
           unpack: true

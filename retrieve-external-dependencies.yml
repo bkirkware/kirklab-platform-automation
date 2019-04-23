@@ -6,28 +6,6 @@ resource_types:
     tag: latest-final
 
 resources:
-- name: daily
-  type: time
-  source:
-    interval: 24h
-
-- name: config
-  type: git
-  source:
-    uri: ((platform-automation-pipelines-kirklab-env))
-    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
-    branch: master
-    submodules: all
-    depth: 1
-
-- name: opsman-product
-  type: s3
-  source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_pivnet_products))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
-    regexp: pcf-vsphere-(.*).ova
 
 - name: platform-automation-pivnet
   type: pivnet
