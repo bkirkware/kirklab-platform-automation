@@ -100,21 +100,21 @@ jobs:
     input_mapping:
       files: env
     output_mapping:
-      interpolated-files: interpolated-configs
+      interpolated-files: env
   - task: download-opsman-image
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product.yml
     params:
-      CONFIG_FILE: download-opsman.yml
+      CONFIG_FILE: ((foundation))/config/download-opsman.yml
     input_mapping:
-      config: interpolated-configs
+      config: env
   - task: upgrade-opsman
     image: platform-automation-image
     file: platform-automation-tasks/tasks/upgrade-opsman.yml
     input_mapping:
-      config: interpolated-configs
+      config: env
       image: downloaded-product
-      secrets: interpolated-configs
+      secrets: env
       state: env
     params:
       ENV_FILE: ((foundation))/env/env.yml
