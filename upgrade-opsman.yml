@@ -6,23 +6,6 @@ resource_types:
     tag: latest-final
 
 resources:
-- name: config
-  type: git
-  source:
-    uri: ((platform-automation-pipelines-kirklab-env))
-    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
-    branch: master
-    submodules: all
-    depth: 1
-
-- name: opsman-product
-  type: s3
-  source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_pivnet_products))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
-    regexp: pcf-vsphere-(.*).ova
 
 - name: platform-automation-tasks
   type: s3
@@ -63,8 +46,6 @@ jobs:
     - get: platform-automation-image
       params:
         unpack: true
-      passed:
-        - fetch-opsman
     - get: platform-automation-tasks
       params:
         unpack: true
@@ -78,10 +59,10 @@ jobs:
         interpolated-files: env
       params:
         # all required
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
         CREDHUB_CLIENT: ((credhub_client))
         CREDHUB_SECRET: ((credhub_secret))
         CREDHUB_SERVER: ((credhub_server))
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
         PREFIX: /((foundation))
         ENV_FILE: ((foundation))/env/env.yml
     - task: export-installation
@@ -95,23 +76,24 @@ jobs:
 - name: upgrade-opsman
   serial: true
   plan:
-    - get: platform-automation-image
-      params:
-        unpack: true
-    - get: platform-automation-tasks
-      params:
-        unpack: true
+  - get: platform-automation-image
+    params:
+      unpack: true
+  - get: platform-automation-tasks
+    params:
+      unpack: true
   - get: env
   - get: installation
-      passed:
-        - export-installation
+    passed:
+      - export-installation
   - task: credhub-interpolate
     image: platform-automation-image
     file: platform-automation-tasks/tasks/credhub-interpolate.yml
     params:
-      CREDHUB_CLIENT: ((credhub-client))
-      CREDHUB_SECRET: ((credhub-secret))
-      CREDHUB_SERVER: ((credhub-server))
+      CREDHUB_CLIENT: ((credhub_client))
+      CREDHUB_SECRET: ((credhub_secret))
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
       PREFIX: /((foundation))
       # A file path that includes env.yml, opsman.yml, download-opsman.yml
       INTERPOLATION_PATH: ((foundation)) 
