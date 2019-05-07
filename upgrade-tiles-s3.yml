@@ -3,42 +3,38 @@ resources:
   - name: platform-automation-tasks
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: .*tasks-(.*).zip
-      disable_ssl: true
 
   - name: platform-automation-image
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: .*image-(.*).tgz
-      disable_ssl: true
 
   - name: pas-srt-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: pas-srt-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: pas-srt-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: srt-(.*).pivotal
-      disable_ssl: true
 
   - name: pas-srt-stemcell-config
     type: s3
@@ -52,22 +48,20 @@ resources:
   - name: healthwatch-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: healthwatch-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: healthwatch-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: p-healthwatch-(.*).pivotal
-      disable_ssl: true
 
   - name: healthwatch-stemcell-config
     type: s3
@@ -81,22 +75,20 @@ resources:
   - name: redis-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: redis-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: redis-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: p-redis-(.*).pivotal
-      disable_ssl: true
 
   - name: redis-stemcell-config
     type: s3
@@ -110,22 +102,20 @@ resources:
   - name: newrelic-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: newrelic-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: newrelic-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: newrelic-broker-(.*).pivotal
-      disable_ssl: true
 
   - name: newrelic-stemcell-config
     type: s3
@@ -139,22 +129,20 @@ resources:
   - name: pks-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: pks-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: pks-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: pivotal-container-service-(.*).pivotal
-      disable_ssl: true
 
   - name: pks-stemcell-config
     type: s3
@@ -168,22 +156,20 @@ resources:
   - name: harbor-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: harbor-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: harbor-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: harbor-container-registry-(.*).pivotal
-      disable_ssl: true
 
   - name: harbor-stemcell-config
     type: s3
@@ -197,22 +183,20 @@ resources:
   - name: mysql-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: mysql-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: mysql-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: pivotal-mysql-(.*).pivotal
-      disable_ssl: true
 
   - name: mysql-stemcell-config
     type: s3
@@ -226,22 +210,20 @@ resources:
   - name: pcc-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: pcc-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: pcc-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: p-cloudcache-(.*).pivotal
-      disable_ssl: true
 
   - name: pcc-stemcell-config
     type: s3
@@ -255,22 +237,20 @@ resources:
   - name: rabbitmq-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: rabbitmq-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: rabbitmq-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: p-rabbitmq-(.*).pivotal
-      disable_ssl: true
 
   - name: rabbitmq-stemcell-config
     type: s3
@@ -284,22 +264,20 @@ resources:
   - name: metrics-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: metrics-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: metrics-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: apm-(.*).pivotal
-      disable_ssl: true
 
   - name: metrics-stemcell-config
     type: s3
@@ -313,22 +291,20 @@ resources:
   - name: scdf-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: scdf-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: scdf-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: p-dataflow-(.*).pivotal
-      disable_ssl: true
 
   - name: scdf-stemcell-config
     type: s3
@@ -342,22 +318,20 @@ resources:
   - name: scs-stemcell
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: scs-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-      disable_ssl: true
 
   - name: scs-product
     type: s3
     source:
-      access_key_id: ((minio_access_key_id))
-      secret_access_key: ((minio_secret_access_key))
-      endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_pivnet_products))
       regexp: p-spring-cloud-services-(.*).pivotal
-      disable_ssl: true
 
   - name: scs-stemcell-config
     type: s3

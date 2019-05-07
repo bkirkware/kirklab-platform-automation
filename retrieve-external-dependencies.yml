@@ -18,20 +18,22 @@ resources:
 - name: platform-automation-tasks
   type: s3
   source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_pivnet_products))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    endpoint: ((minio_endpoint))
+    bucket: ((minio_buckets_pivnet_products))
     regexp: platform-automation-tasks-(.*).zip
+    disable_ssl: true
 
 - name: platform-automation-image
   type: s3
   source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_pivnet_products))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    endpoint: ((minio_endpoint))
+    bucket: ((minio_buckets_pivnet_products))
     regexp: platform-automation-image-(.*).tgz
+    disable_ssl: true
 
 jobs:
 

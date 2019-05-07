@@ -26,7 +26,7 @@ resources:
   type: s3
   source:
     access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_installation))
+    bucket: ((aws_buckets_control_installation))
     region_name: ((aws_region_name))
     secret_access_key: ((aws_secret_access_key))
     regexp: installation-(.*).zip
@@ -35,7 +35,7 @@ resources:
   source:
     regexp: installation-(.*).zip
     endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_installation))
+    bucket: ((minio_buckets_control_installation))
     access_key_id: ((minio_access_key_id))
     secret_access_key: ((minio_secret_access_key))
     disable_ssl: true
