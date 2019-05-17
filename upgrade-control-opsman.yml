@@ -84,6 +84,7 @@ jobs:
       unpack: true
   - get: env
   - get: installation
+    trigger: true
     passed:
       - export-installation
   - task: credhub-interpolate
