@@ -123,6 +123,11 @@ jobs:
     file: platform-automation-tasks/tasks/download-product.yml
     params:
       CONFIG_FILE: ((foundation))/config/download-opsman.yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "Kirklab Control Plane Ops Manager failed to download."
     input_mapping:
       config: env
   - task: upgrade-opsman
