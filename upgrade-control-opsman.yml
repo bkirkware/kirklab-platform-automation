@@ -10,19 +10,19 @@ resources:
 - name: platform-automation-tasks
   type: s3
   source:
-    access_key_id: ((aws_access_key_id))
-    secret_access_key: ((aws_secret_access_key))
-    region_name: ((aws_region_name))
-    bucket: ((aws_buckets_pivnet_products))
+    endpoint: ((minio_endpoint))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    bucket: ((minio_buckets_pivnet_products))
     regexp: .*tasks-(.*).zip
 
 - name: platform-automation-image
   type: s3
   source:
-    access_key_id: ((aws_access_key_id))
-    secret_access_key: ((aws_secret_access_key))
-    region_name: ((aws_region_name))
-    bucket: ((aws_buckets_pivnet_products))
+    endpoint: ((minio_endpoint))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    bucket: ((minio_buckets_pivnet_products))
     regexp: .*image-(.*).tgz
 - name: env
   type: git
@@ -33,10 +33,10 @@ resources:
 - name: installation
   type: s3
   source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_control_installation))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
+    endpoint: ((minio_endpoint))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    bucket: ((minio_buckets_installation))
     regexp: installation-(.*).zip
 
 jobs:
