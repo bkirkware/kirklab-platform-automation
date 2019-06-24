@@ -5,33 +5,49 @@ resource_types:
     repository: pivotalcf/pivnet-resource
     tag: latest-final
 
+- name: slack-alert
+  type: docker-image
+  source:
+    repository: arbourd/concourse-slack-alert-resource
+
+
 resources:
+
+- name: notify
+  type: slack-alert
+  icon: slack
+  source:
+    url: ((slack_webhook))
 
 - name: platform-automation-tasks
   type: s3
+  icon: file
   source:
     endpoint: ((minio_endpoint))
     access_key_id: ((minio_access_key_id))
     secret_access_key: ((minio_secret_access_key))
-    bucket: ((minio_buckets_pivnet_products))
+    bucket: ((minio_buckets_platform_automation))
     regexp: .*tasks-(.*).zip
 
 - name: platform-automation-image
   type: s3
+  icon: file
   source:
     endpoint: ((minio_endpoint))
     access_key_id: ((minio_access_key_id))
     secret_access_key: ((minio_secret_access_key))
-    bucket: ((minio_buckets_pivnet_products))
+    bucket: ((minio_buckets_platform_automation))
     regexp: .*image-(.*).tgz
 - name: env
   type: git
+  icon: github-circle
   source:
     uri: ((platform-automation-pipelines-kirklab-env))
     private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
     branch: master
 - name: installation
   type: s3
+  icon: file-upload
   source:
     endpoint: ((minio_endpoint))
     access_key_id: ((minio_access_key_id))
@@ -121,3 +137,13 @@ jobs:
       ENV_FILE: ((foundation))/env/env.yml
       OPSMAN_CONFIG_FILE: ((foundation))/config/opsman.yml
       STATE_FILE: ((foundation))/state/state.yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "Kirklab Control Plane Ops Manager failed to upgrade."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "Kirklab Control Plane Ops Manager successfully upgraded."
