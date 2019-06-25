@@ -5,38 +5,53 @@ resource_types:
     repository: pivotalcf/pivnet-resource
     tag: latest-final
 
+- name: slack-alert
+  type: docker-image
+  source:
+    repository: arbourd/concourse-slack-alert-resource
+
 resources:
+
+- name: notify
+  type: slack-alert
+  icon: slack
+  source:
+    url: ((slack_webhook))
 
 - name: platform-automation-tasks
   type: s3
+  icon: file
   source:
-    access_key_id: ((aws_access_key_id))
-    secret_access_key: ((aws_secret_access_key))
-    region_name: ((aws_region_name))
-    bucket: ((aws_buckets_pivnet_products))
+    endpoint: ((minio_endpoint))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    bucket: ((minio_buckets_platform_automation))
     regexp: .*tasks-(.*).zip
 
 - name: platform-automation-image
   type: s3
+  icon: file
   source:
-    access_key_id: ((aws_access_key_id))
-    secret_access_key: ((aws_secret_access_key))
-    region_name: ((aws_region_name))
-    bucket: ((aws_buckets_pivnet_products))
+    endpoint: ((minio_endpoint))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    bucket: ((minio_buckets_platform_automation))
     regexp: .*image-(.*).tgz
 - name: env
   type: git
+  icon: github-circle
   source:
     uri: ((platform-automation-pipelines-kirklab-env))
     private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
     branch: master
 - name: installation
   type: s3
+  icon: file-upload
   source:
-    access_key_id: ((aws_access_key_id))
-    bucket: ((aws_buckets_installation))
-    region_name: ((aws_region_name))
-    secret_access_key: ((aws_secret_access_key))
+    endpoint: ((minio_endpoint))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    bucket: ((minio_buckets_installation))
     regexp: installation-(.*).zip
 
 jobs:
@@ -107,6 +122,11 @@ jobs:
     file: platform-automation-tasks/tasks/download-product.yml
     params:
       CONFIG_FILE: ((foundation))/config/download-opsman.yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) ops manager failed to download."
     input_mapping:
       config: env
   - task: upgrade-opsman
@@ -121,3 +141,13 @@ jobs:
       ENV_FILE: ((foundation))/env/env.yml
       OPSMAN_CONFIG_FILE: ((foundation))/config/opsman.yml
       STATE_FILE: ((foundation))/state/state.yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) ops manager failed to upgrade."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "((foundation)) ops manager successfully upgraded."

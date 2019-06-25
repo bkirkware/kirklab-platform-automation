@@ -52,7 +52,7 @@ resources:
     endpoint: ((minio_endpoint))
     access_key_id: ((minio_access_key_id))
     secret_access_key: ((minio_secret_access_key))
-    bucket: ((minio_buckets_installation))
+    bucket: ((minio_buckets_control_installation))
     regexp: installation-(.*).zip
 
 jobs:
