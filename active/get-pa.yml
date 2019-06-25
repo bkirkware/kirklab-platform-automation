@@ -5,33 +5,47 @@ resource_types:
     repository: pivotalcf/pivnet-resource
     tag: latest-final
 
+- name: slack-alert
+  type: docker-image
+  source:
+    repository: arbourd/concourse-slack-alert-resource
+
 resources:
+
+- name: notify
+  type: slack-alert
+  icon: slack
+  source:
+    url: ((slack_webhook))
 
 - name: platform-automation-pivnet
   type: pivnet
+  icon: file-powerpoint
   source:
     api_token: ((pivnet-refresh-token))
     product_slug: platform-automation
-    product_version: 2\.(.*)
+    product_version: 3\.(.*)
     sort_by: semver
 
 - name: platform-automation-tasks
   type: s3
+  icon: file-upload
   source:
     access_key_id: ((minio_access_key_id))
     secret_access_key: ((minio_secret_access_key))
     endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_pivnet_products))
+    bucket: ((minio_buckets_platform_automation))
     regexp: platform-automation-tasks-(.*).zip
     disable_ssl: true
 
 - name: platform-automation-image
   type: s3
+  icon: file-upload
   source:
     access_key_id: ((minio_access_key_id))
     secret_access_key: ((minio_secret_access_key))
     endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_pivnet_products))
+    bucket: ((minio_buckets_platform_automation))
     regexp: platform-automation-image-(.*).tgz
     disable_ssl: true
 
@@ -43,10 +57,20 @@ jobs:
   plan:
   - get: platform-automation-pivnet
     trigger: true
-  - aggregate:
+  - in_parallel:
     - put: platform-automation-tasks
       params:
         file: platform-automation-pivnet/*tasks*.zip
     - put: platform-automation-image
       params:
         file: platform-automation-pivnet/*image*.tgz
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "Platform Automation failed to download."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "Platform Automation successfully upgraded."
