@@ -21,7 +21,7 @@ resources:
       access_key_id: ((minio_access_key_id))
       secret_access_key: ((minio_secret_access_key))
       endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      bucket: ((minio_buckets_platform_automation))
       regexp: .*tasks-(.*).zip
       disable_ssl: true
 
@@ -32,7 +32,7 @@ resources:
       access_key_id: ((minio_access_key_id))
       secret_access_key: ((minio_secret_access_key))
       endpoint: ((minio_endpoint))
-      bucket: ((minio_buckets_pivnet_products))
+      bucket: ((minio_buckets_platform_automation))
       regexp: .*image-(.*).tgz
       disable_ssl: true
 
@@ -842,9 +842,9 @@ jobs:
         CONFIG_FILE: ((foundation))/download-product-configs/pcc.yml
       input_mapping:
         config: configuration
-      output_mapping: 
-        downloaded-stemcell: pcc-stemcell
-        assign-stemcell-config: pcc-stemcell-config
+      #output_mapping: 
+      #  downloaded-stemcell: pcc-stemcell
+      #  assign-stemcell-config: pcc-stemcell-config
       on_failure:
         put: notify
         params:
@@ -854,12 +854,12 @@ jobs:
       - put: pcc-product
         params:
           file: downloaded-product/*.pivotal
-      - put: pcc-stemcell
-        params:
-          file: pcc-stemcell/*.tgz
-      - put: pcc-stemcell-config
-        params:
-          file: pcc-stemcell-config/config.yml
+      #- put: pcc-stemcell
+      #  params:
+      #    file: pcc-stemcell/*.tgz
+      #- put: pcc-stemcell-config
+      #  params:
+      #    file: pcc-stemcell-config/config.yml
       on_failure:
         put: notify
         params:
