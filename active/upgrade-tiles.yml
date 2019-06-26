@@ -1,4 +1,18 @@
+---
+resource_types:
+
+  - name: slack-alert
+    type: docker-image
+    source:
+      repository: arbourd/concourse-slack-alert-resource
+
 resources:
+
+  - name: notify
+    type: slack-alert
+    icon: slack
+    source:
+      url: ((slack_webhook))
 
   - name: platform-automation-tasks
     type: s3
@@ -362,7 +376,7 @@ resources:
 jobs:
   - name: fetch-pas-srt
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -394,7 +408,12 @@ jobs:
       output_mapping:
         downloaded-stemcell: pas-srt-stemcell
         assign-stemcell-config: pas-srt-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) product failed to download."
+    - in_parallel:
       - put: pas-srt-product
         params:
           file: downloaded-product/*.pivotal
@@ -404,11 +423,16 @@ jobs:
       - put: pas-srt-stemcell-config
         params:
           file: pas-srt-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) product failed to upload."
 
   - name: upload-and-stage-pas
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -455,6 +479,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) PAS failed to upload."
       - task: stage-product
         image: platform-automation-image
         file: platform-automation-tasks/tasks/stage-product.yml
@@ -472,6 +501,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) PAS stemcell failed to upload."
       - task: assign-pas-srt-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -480,10 +514,20 @@ jobs:
           config: pas-srt-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) PAS stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) PAS uploaded, staged, and ready to apply."
 
   - name: fetch-harbor
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -515,7 +559,12 @@ jobs:
       output_mapping: 
         downloaded-stemcell: harbor-stemcell
         assign-stemcell-config: harbor-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) Harbor failed to download."
+    - in_parallel:
       - put: harbor-product
         params:
           file: downloaded-product/*.pivotal
@@ -525,11 +574,16 @@ jobs:
       - put: harbor-stemcell-config
         params:
           file: harbor-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) Harbor failed to upload."
 
   - name: upload-and-stage-harbor
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -576,6 +630,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) Harbor failed to upload/stage."
       - task: upload-harbor-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/upload-stemcell.yml
@@ -585,6 +644,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) Harbor stemcell failed to upload."
       - task: assign-harbor-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -593,10 +657,20 @@ jobs:
           config: harbor-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) Harbor stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) Harbor uploaded, staged, and ready to apply."
 
   - name: fetch-mysql
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -628,7 +702,12 @@ jobs:
       output_mapping: 
         downloaded-stemcell: mysql-stemcell
         assign-stemcell-config: mysql-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) MySQL failed to download."
+    - in_parallel:
       - put: mysql-product
         params:
           file: downloaded-product/*.pivotal
@@ -638,11 +717,16 @@ jobs:
       - put: mysql-stemcell-config
         params:
           file: mysql-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) MySQL failed to upload."
 
   - name: upload-and-stage-mysql
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -689,6 +773,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) MySQL failed to upload/stage."
       - task: upload-mysql-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/upload-stemcell.yml
@@ -698,6 +787,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) MySQL stemcell failed to upload."
       - task: assign-mysql-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -706,10 +800,20 @@ jobs:
           config: mysql-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) MySQL stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) MySQL uploaded, staged, and ready to apply."
 
   - name: fetch-pcc
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -741,7 +845,12 @@ jobs:
       output_mapping: 
         downloaded-stemcell: pcc-stemcell
         assign-stemcell-config: pcc-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) PCC failed to download."
+    - in_parallel:
       - put: pcc-product
         params:
           file: downloaded-product/*.pivotal
@@ -751,11 +860,16 @@ jobs:
       - put: pcc-stemcell-config
         params:
           file: pcc-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) PCC failed to upload."
 
   - name: upload-and-stage-pcc
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -802,6 +916,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) PCC failed to upload/stage."
       - task: upload-pcc-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/upload-stemcell.yml
@@ -811,6 +930,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) PCC stemcell failed to upload."
       - task: assign-pcc-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -819,10 +943,20 @@ jobs:
           config: pcc-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) PCC stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) PCC uploaded, staged, and ready to apply."
 
   - name: fetch-pks
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -854,7 +988,12 @@ jobs:
       output_mapping: 
         downloaded-stemcell: pks-stemcell
         assign-stemcell-config: pks-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) PKS failed to download."
+    - in_parallel:
       - put: pks-product
         params:
           file: downloaded-product/*.pivotal
@@ -864,11 +1003,16 @@ jobs:
       - put: pks-stemcell-config
         params:
           file: pks-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) PKS failed to upload."
 
   - name: upload-and-stage-pks
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -915,6 +1059,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) PKS failed to upload/stage."
       - task: upload-pks-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/upload-stemcell.yml
@@ -924,6 +1073,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) PKS stemcell failed to upload."
       - task: assign-pks-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -932,10 +1086,20 @@ jobs:
           config: pks-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) PKS stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) PKS uploaded, staged, and ready to apply."
 
   - name: fetch-rabbitmq
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -967,7 +1131,12 @@ jobs:
       output_mapping: 
         downloaded-stemcell: rabbitmq-stemcell
         assign-stemcell-config: rabbitmq-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) RabbitMQ failed to download."
+    - in_parallel:
       - put: rabbitmq-product
         params:
           file: downloaded-product/*.pivotal
@@ -977,11 +1146,16 @@ jobs:
       - put: rabbitmq-stemcell-config
         params:
           file: rabbitmq-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) RabbitMQ failed to upload."
 
   - name: upload-and-stage-rabbitmq
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -1028,6 +1202,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) RabbitMQ failed to upload/stage."
       - task: upload-rabbitmq-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/upload-stemcell.yml
@@ -1037,6 +1216,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) RabbitMQ stemcell failed to upload."
       - task: assign-rabbitmq-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -1045,10 +1229,20 @@ jobs:
           config: rabbitmq-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) RabbitMQ stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) RabbitMQ uploaded, staged, and ready to apply."
 
   - name: fetch-scdf
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -1080,7 +1274,12 @@ jobs:
       output_mapping: 
         downloaded-stemcell: scdf-stemcell
         assign-stemcell-config: scdf-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) SCDF failed to download."
+    - in_parallel:
       - put: scdf-product
         params:
           file: downloaded-product/*.pivotal
@@ -1090,11 +1289,16 @@ jobs:
       - put: scdf-stemcell-config
         params:
           file: scdf-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) SCDF failed to upload."
 
   - name: upload-and-stage-scdf
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -1141,6 +1345,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) SCDF failed to upload/stage."
       - task: upload-scdf-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/upload-stemcell.yml
@@ -1150,6 +1359,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) SCDF stemcell failed to upload."
       - task: assign-scdf-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -1158,10 +1372,20 @@ jobs:
           config: scdf-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) SCDF stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) SCDF uploaded, staged, and ready to apply."
 
   - name: fetch-scs
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -1193,7 +1417,12 @@ jobs:
       output_mapping: 
         downloaded-stemcell: scs-stemcell
         assign-stemcell-config: scs-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) SCS failed to download."
+    - in_parallel:
       - put: scs-product
         params:
           file: downloaded-product/*.pivotal
@@ -1203,11 +1432,16 @@ jobs:
       - put: scs-stemcell-config
         params:
           file: scs-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) SCS failed to upload."
 
   - name: upload-and-stage-scs
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -1254,6 +1488,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) SCS failed to upload/stage."
       - task: upload-scs-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/upload-stemcell.yml
@@ -1263,6 +1502,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) SCS stemcell failed to upload."
       - task: assign-scs-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -1271,11 +1515,21 @@ jobs:
           config: scs-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) SCS stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) SCS uploaded, staged, and ready to apply."
 
 
   - name: fetch-healthwatch
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -1307,7 +1561,12 @@ jobs:
       output_mapping: 
         downloaded-stemcell: healthwatch-stemcell
         assign-stemcell-config: healthwatch-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) Healthwatch failed to download."
+    - in_parallel:
       - put: healthwatch-product
         params:
           file: downloaded-product/*.pivotal
@@ -1317,11 +1576,16 @@ jobs:
       - put: healthwatch-stemcell-config
         params:
           file: healthwatch-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) Healthwatch failed to upload."
 
   - name: upload-and-stage-healthwatch
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -1368,6 +1632,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) Healthwatch failed to upload/stage."
       - task: upload-healthwatch-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/upload-stemcell.yml
@@ -1377,6 +1646,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) Healthwatch stemcell failed to upload."
       - task: assign-healthwatch-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -1385,10 +1659,20 @@ jobs:
           config: healthwatch-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) Healthwatch stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) Healthwatch uploaded, staged, and ready to apply."
 
   - name: fetch-redis
     plan:
-    - aggregate:
+    - in_parallel:
       - get: platform-automation-image
         params:
           unpack: true
@@ -1420,7 +1704,12 @@ jobs:
       output_mapping: 
         downloaded-stemcell: redis-stemcell
         assign-stemcell-config: redis-stemcell-config
-    - aggregate:
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) Redis failed to download."
+    - in_parallel:
       - put: redis-product
         params:
           file: downloaded-product/*.pivotal
@@ -1430,11 +1719,16 @@ jobs:
       - put: redis-stemcell-config
         params:
           file: redis-stemcell-config/config.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) Redis failed to upload."
 
   - name: upload-and-stage-redis
     serial: true
     plan:
-      - aggregate:
+      - in_parallel:
           - get: platform-automation-image
             params:
               unpack: true
@@ -1481,6 +1775,11 @@ jobs:
           env: configuration
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) Redis failed to upload."
       - task: stage-product
         image: platform-automation-image
         file: platform-automation-tasks/tasks/stage-product.yml
@@ -1498,6 +1797,11 @@ jobs:
         params:
           ENV_FILE: ((foundation))/env/env.yml
           FLOATING_STEMCELL: false
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) Redis stemcell failed to upload."
       - task: assign-redis-stemcell
         image: platform-automation-image
         file: platform-automation-tasks/tasks/assign-stemcell.yml
@@ -1506,41 +1810,14 @@ jobs:
           config: redis-stemcell-config
         params:
           ENV_FILE: ((foundation))/env/env.yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) Redis stemcell failed to assign."
+        on_success:
+          put: notify
+          params:
+            alert_type: success
+            text: "((foundation)) Redis uploaded, staged, and ready to apply."
 
-
-  
-  - name: apply-product-changes
-    serial: true
-    plan:
-      - aggregate:
-          - get: platform-automation-image
-            params:
-              unpack: true
-            passed:
-              - upload-and-stage-pas
-          - get: platform-automation-tasks
-            params:
-              unpack: true
-          - get: configuration
-          - get: variable
-      - task: credhub-interpolate
-        image: platform-automation-image
-        file: platform-automation-tasks/tasks/credhub-interpolate.yml
-        params:
-          CREDHUB_CLIENT: ((credhub_client))
-          CREDHUB_SECRET: ((credhub_secret))
-          CREDHUB_SERVER: ((credhub_server))
-          CREDHUB_CA_CERT: ((credhub_ca_cert))
-          PREFIX: /((foundation))
-          INTERPOLATION_PATH: "((foundation))"
-        input_mapping:
-          files: configuration
-        output_mapping:
-          interpolated-files: configuration
-      - task: apply-product-changes
-        image: platform-automation-image
-        file: platform-automation-tasks/tasks/apply-changes.yml
-        input_mapping:
-          env: configuration
-        params:
-          ENV_FILE: ((foundation))/env/env.yml
