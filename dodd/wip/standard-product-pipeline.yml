@@ -1,0 +1,259 @@
+---
+groups:
+- name: deployment-pipeline
+  jobs: 
+    - lock-tiles
+    - validate-tile-configuration
+    - download-stage-tile-stemcell
+    - configure-and-apply
+    - unlock-tile
+- name: ad-hoc-jobs
+  jobs: 
+    - force-unlock
+    - export-staged-config
+
+resource_types:
+- name: pivnet
+  type: docker-image
+  source:
+    repository: pivotalcf/pivnet-resource
+    tags: latest-final
+
+- name: slack-alert
+  type: docker-image
+  source:
+    repository: arbourd/concourse-slack-alert-resource
+
+resources:
+
+- name: notify
+  type: slack-alert
+  icon: slack
+  source:
+    url: ((slack_webhook))
+
+- name: platform-automation
+  type: pivnet
+  source:
+    api_token: ((pivnet-refresh-token))
+    product_slug: platform-automation
+
+- name: configuration
+  type: git
+  icon: github-circle
+  source:
+    uri: git@github.com:bkirkware/kirklab-env
+    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
+    branch: master
+    paths:
+    - "environments/((iaas))/((foundation))/config/((product))"
+    - "proposed-tasks"
+
+- name: lock
+  type: pool
+  source:
+    branch: master
+    uri: git@github.com:bkirkware/kirklab-locks
+    private_key: ((platform-automation-pipelines-kirklab-locks-key.private_key))
+    pool: ((foundation))
+    retry_delay: 1m
+
+- name: staged-config
+  type: s3
+  source:
+    bucket: ((aws_buckets_staged_config))
+    access_key_id: ((aws_access_key_id))
+    secret_access_key: ((aws_secret_access_key))
+    region_name: ((aws_region_name))
+    versioned_file: ((product)).yml
+
+jobs:
+
+- name: force-unlock
+  serial: true
+  plan:
+  - get: lock
+  - put: lock
+    params:
+      release: lock
+
+- name: lock-tiles
+  serial: true
+  plan:
+  - aggregate:
+    - put: lock
+      params: {acquire: true}
+    - get: configuration
+
+- name: validate-tile-configuration
+  plan:
+  - aggregate:
+    - get: configuration
+      passed: [ lock-tiles ]
+      trigger: true
+    - get: platform-automation-image
+      resource: platform-automation
+      params:
+        unpack: true
+        globs: ["*image*"]
+    - get: platform-automation-tasks
+      resource: platform-automation
+      params:
+        unpack: true
+        globs: ["*tasks*"]
+
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params: &credhub_interpolate_params
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      CREDHUB_CLIENT: concourse_to_credhub
+      CREDHUB_SECRET: ((credhub_secret))
+      PREFIX: '/((foundation))'
+      INTERPOLATION_PATHS: "environments/((iaas))/((foundation))/config-common/secrets environments/((iaas))/((foundation))/config/((product))/((product))-secrets.yml"
+    input_mapping:
+      files: configuration
+
+- name: download-stage-tile-stemcell
+  serial: true
+  plan:
+  - aggregate:
+    - get: configuration
+      passed: [ validate-tile-configuration ]
+      trigger: true
+    - get: platform-automation-image
+      resource: platform-automation
+      params:
+        unpack: true
+        globs: ["*image*"]
+    - get: platform-automation-tasks
+      resource: platform-automation
+      params:
+        unpack: true
+        globs: ["*tasks*"]
+
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params: *credhub_interpolate_params
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: interpolated-files
+
+  - task: download-stage-tile-stemcell
+    image: platform-automation-image
+    file: configuration/proposed-tasks/download-stage-tile-stemcell.yml
+    input_mapping:
+      config: configuration
+      download-config: configuration
+      env: interpolated-files
+      secrets: interpolated-files
+    params:
+      DOWNLOAD_CONFIG_FILE: environments/((iaas))/((foundation))/config/((product))/((product))-version.yml
+      DOWNLOAD_STEMCELL_CONFIG_FILE: environments/((iaas))/((foundation))/config/((product))/((product))-stemcell-version.yml
+      CONFIG_FILE: environments/((iaas))/((foundation))/config/((product))/((product))-template.yml
+      ENV_FILE: environments/((iaas))/((foundation))/config-common/secrets/env.yml
+      VARS_FILES: secrets/environments/((iaas))/((foundation))/config/secrets/pivnet.yml
+
+- name: configure-and-apply
+  serial: true
+  plan:
+  - aggregate:
+    - get: configuration
+      passed: [ download-stage-tile-stemcell ]
+      trigger: true
+    - get: platform-automation-image
+      resource: platform-automation
+      params:
+        unpack: true
+        globs: ["*image*"]
+    - get: platform-automation-tasks
+      resource: platform-automation
+      params:
+        unpack: true
+        globs: ["*tasks*"]
+
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params: *credhub_interpolate_params
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: interpolated-files
+
+  - task: configure
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/configure-product.yml
+    input_mapping:
+      config: configuration
+      env: interpolated-files
+      vars: configuration
+      secrets: interpolated-files
+    params:
+      CONFIG_FILE: environments/((iaas))/((foundation))/config/((product))/((product))-template.yml
+      VARS_FILES: |
+        vars/environments/((iaas))/((foundation))/config/((product))/((product))-defaults.yml
+        vars/environments/((iaas))/((foundation))/config/((product))/((product))-vars.yml
+        secrets/environments/((iaas))/((foundation))/config/((product))/((product))-secrets.yml
+      ENV_FILE: environments/((iaas))/((foundation))/config-common/secrets/env.yml
+
+  - task: apply-product-changes
+    image: platform-automation-image
+    file: configuration/proposed-tasks/apply-product-changes.yml
+    attempts: 10
+    input_mapping:
+      config: configuration
+      env: interpolated-files
+    params:
+      CONFIG_FILE: environments/((iaas))/((foundation))/config/((product))/((product))-template.yml
+      ENV_FILE: environments/((iaas))/((foundation))/config-common/secrets/env.yml
+
+- name: unlock-tile
+  serial: true
+  plan:
+  - get: configuration
+    trigger: true
+    passed: [ configure-and-apply ]
+  - get: lock
+  - put: lock
+    params:
+      release: lock
+
+- name: export-staged-config
+  plan:
+  - aggregate:
+    - get: platform-automation-image
+      resource: platform-automation
+      params:
+        unpack: true
+        globs: ["*image*"]
+    - get: platform-automation-tasks
+      resource: platform-automation
+      params:
+        unpack: true
+        globs: ["*tasks*"]
+    - get: configuration
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params: *credhub_interpolate_params
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: interpolated-files
+  - task: staged-config
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/staged-config.yml
+    params:
+      PRODUCT_NAME: ((product)) 
+      ENV_FILE: environments/((iaas))/((foundation))/config-common/secrets/env.yml
+    input_mapping:
+      env: interpolated-files
+    output_mapping:
+      generated-config: generated-config
+  - put: staged-config
+    params:
+      file: generated-config/((product)).yml

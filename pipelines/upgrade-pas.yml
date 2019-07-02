@@ -1,0 +1,334 @@
+---
+groups:
+- name: deployment-pipeline
+  jobs: 
+    - fetch-pas-srt
+    - lock-tiles
+    - upload-and-stage-pas
+    - apply-product-changes
+    - unlock-tile
+- name: ad-hoc-jobs
+  jobs: 
+    - force-unlock
+
+
+
+resource_types:
+
+  - name: slack-alert
+    type: docker-image
+    source:
+      repository: arbourd/concourse-slack-alert-resource
+
+  - name: pivnet
+    type: docker-image
+    source:
+      repository: pivotalcf/pivnet-resource
+      tags: latest-final
+
+resources:
+
+  - name: notify
+    type: slack-alert
+    icon: slack
+    source:
+      url: ((slack_webhook))
+
+  - name: platform-automation-tasks
+    type: s3
+    icon: file
+    source:
+      access_key_id: ((minio_access_key_id))
+      secret_access_key: ((minio_secret_access_key))
+      endpoint: ((minio_endpoint))
+      bucket: ((minio_buckets_platform_automation))
+      regexp: .*tasks-(.*).zip
+      disable_ssl: true
+
+  - name: platform-automation-image
+    type: s3
+    icon: file
+    source:
+      access_key_id: ((minio_access_key_id))
+      secret_access_key: ((minio_secret_access_key))
+      endpoint: ((minio_endpoint))
+      bucket: ((minio_buckets_platform_automation))
+      regexp: .*image-(.*).tgz
+      disable_ssl: true
+
+  - name: pas-srt-stemcell
+    type: s3
+    icon: ubuntu
+    source:
+      access_key_id: ((minio_access_key_id))
+      secret_access_key: ((minio_secret_access_key))
+      endpoint: ((minio_endpoint))
+      bucket: ((minio_buckets_pivnet_products))
+      regexp: pas-srt-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
+      disable_ssl: true
+
+  - name: pas-srt-product
+    type: s3
+    icon: file
+    source:
+      access_key_id: ((minio_access_key_id))
+      secret_access_key: ((minio_secret_access_key))
+      endpoint: ((minio_endpoint))
+      bucket: ((minio_buckets_pivnet_products))
+      regexp: srt-(.*).pivotal
+      disable_ssl: true
+
+  - name: pas-srt-stemcell-config
+    type: s3
+    icon: file-document
+    source:
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_assign_stemcell_config))
+      versioned_file: ((foundation))/pas-srt/config.yml
+
+  - name: lock
+    type: pool
+    icon: lock
+    source:
+      branch: master
+      uri: git@github.com:bkirkware/kirklab-locks
+      private_key: ((platform-automation-pipelines-kirklab-locks-key.private_key))
+      pool: ((foundation))
+      retry_delay: 1m
+
+  # configurations
+  - name: configuration
+    type: git
+    icon: github-circle
+    source:
+      uri: ((platform-automation-pipelines-kirklab-env))
+      private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
+      branch: master
+
+  - name: variable
+    type: git
+    icon: github-circle
+    source:
+      uri: ((platform-automation-pipelines-kirklab-env))
+      private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
+      branch: master
+
+jobs:
+
+- name: force-unlock
+  serial: true
+  plan:
+  - get: lock
+  - put: lock
+    params:
+      release: lock
+
+- name: fetch-pas-srt
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: configuration
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub_client))
+      CREDHUB_SECRET: ((credhub_secret))
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))/download-product-configs"
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: configuration
+  - task: download-pas-srt-product-and-stemcell
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/download-product.yml
+    params:
+      CONFIG_FILE: ((foundation))/download-product-configs/pas-srt.yml
+    input_mapping:
+      config: configuration
+    output_mapping:
+      downloaded-stemcell: pas-srt-stemcell
+      assign-stemcell-config: pas-srt-stemcell-config
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) product failed to download."
+  - in_parallel:
+    - put: pas-srt-product
+      params:
+        file: downloaded-product/*.pivotal
+    - put: pas-srt-stemcell
+      params:
+        file: pas-srt-stemcell/*.tgz
+    - put: pas-srt-stemcell-config
+      params:
+        file: pas-srt-stemcell-config/config.yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) product failed to upload."
+
+- name: lock-tiles
+  plan:
+  - in_parallel:
+    - put: lock
+      params: {acquire: true}
+    - get: configuration
+      passed:
+        - fetch-pas-srt
+
+- name: upload-and-stage-pas
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: pas-srt-product
+          trigger: true
+        - get: pas-srt-stemcell
+          trigger: true
+        - get: pas-srt-stemcell-config
+          trigger: true
+        - get: configuration
+          passed:
+            - lock-tiles
+        - get: variable
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: upload-product
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/upload-product.yml
+      input_mapping:
+        product: pas-srt-product
+        env: configuration
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) PAS failed to upload."
+    - task: stage-product
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/stage-product.yml
+      input_mapping:
+        product: pas-srt-product
+        env: configuration
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+    - task: upload-pas-srt-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/upload-stemcell.yml
+      input_mapping:
+        env: configuration
+        stemcell: pas-srt-stemcell
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        FLOATING_STEMCELL: false
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) PAS stemcell failed to upload."
+    - task: assign-pas-srt-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/assign-stemcell.yml
+      input_mapping:
+        env: configuration
+        config: pas-srt-stemcell-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) PAS stemcell failed to assign."
+      on_success:
+        put: notify
+        params:
+          alert_type: success
+          text: "((foundation)) PAS uploaded, staged, and ready to apply."
+
+  
+- name: apply-product-changes
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+          passed:
+            - upload-and-stage-pas
+        - get: variable
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: apply-product-changes
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/apply-changes.yml
+      input_mapping:
+        env: configuration
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) apply changes failed."
+      on_success:
+        put: notify
+        params:
+          alert_type: success
+          text: "((foundation)) apply changes succeeded."
+
+- name: unlock-tile
+  serial: true
+  plan:
+  - get: configuration
+    trigger: true
+    passed: [ apply-product-changes ]
+  - get: lock
+  - put: lock
+    params:
+      release: lock
