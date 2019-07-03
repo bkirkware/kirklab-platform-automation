@@ -185,9 +185,11 @@ jobs:
   - in_parallel:
     - put: lock
       params: {acquire: true}
-    - get: configuration
+    - get: pcc-product
       passed:
         - fetch-pcc
+      trigger: true
+      
 
 - name: upload-and-stage-pcc
   plan:
@@ -199,14 +201,12 @@ jobs:
           params:
             unpack: true
         - get: pcc-product
-          trigger: true
-        - get: pcc-stemcell
-          trigger: true
-        - get: pcc-stemcell-config
-          trigger: true
-        - get: configuration
           passed:
             - lock-tiles
+          trigger: true
+        - get: pcc-stemcell
+        - get: pcc-stemcell-config
+        - get: configuration
         - get: variable
     - task: credhub-interpolate
       image: platform-automation-image
@@ -279,9 +279,11 @@ jobs:
           params:
             unpack: true
         - get: configuration
+        - get: variable
+        - get: pcc-product
           passed:
             - upload-and-stage-pcc
-        - get: variable
+          trigger: true
     - task: credhub-interpolate
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
@@ -317,9 +319,10 @@ jobs:
 - name: unlock-tile
   serial: true
   plan:
-  - get: configuration
+  - get: pcc-product
+    passed:
+      - apply-product-changes
     trigger: true
-    passed: [ apply-product-changes ]
   - get: lock
   - put: lock
     params:
