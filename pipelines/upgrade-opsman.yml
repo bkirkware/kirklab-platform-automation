@@ -1,0 +1,278 @@
+---
+groups:
+- name: deployment-pipeline
+  jobs: 
+    - lock-tiles
+    - export-installation
+    - upgrade-opsman
+    - apply-product-changes
+    - unlock-tile
+- name: ad-hoc-jobs
+  jobs: 
+    - force-unlock
+
+resource_types:
+- name: pivnet
+  type: docker-image
+  source:
+    repository: pivotalcf/pivnet-resource
+    tag: latest-final
+
+- name: slack-alert
+  type: docker-image
+  source:
+    repository: arbourd/concourse-slack-alert-resource
+
+
+resources:
+
+- name: notify
+  type: slack-alert
+  icon: slack
+  source:
+    url: ((slack_webhook))
+
+- name: lock
+  type: pool
+  icon: lock
+  source:
+    branch: master
+    uri: git@github.com:bkirkware/kirklab-locks
+    private_key: ((platform-automation-pipelines-kirklab-locks-key.private_key))
+    pool: ((foundation))
+    retry_delay: 1m
+
+- name: pivnet-opsman
+  type: pivnet
+  icon: file-powerpoint
+  source:
+    api_token: ((pivnet-refresh-token))
+    product_slug: ops-manager
+    product_version: ^2\.6\..*$
+
+- name: platform-automation-tasks
+  type: s3
+  icon: file
+  source:
+    endpoint: ((minio_endpoint))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    bucket: ((minio_buckets_platform_automation))
+    regexp: .*tasks-(.*).zip
+
+- name: platform-automation-image
+  type: s3
+  icon: file
+  source:
+    endpoint: ((minio_endpoint))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    bucket: ((minio_buckets_platform_automation))
+    regexp: .*image-(.*).tgz
+- name: env
+  type: git
+  icon: github-circle
+  source:
+    uri: ((platform-automation-pipelines-kirklab-env))
+    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
+    branch: master
+    
+- name: installation
+  type: s3
+  icon: file-upload
+  source:
+    endpoint: ((minio_endpoint))
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    bucket: ((foundation))-installation
+    regexp: installation-(.*).zip
+
+jobs:
+
+- name: lock-tiles
+  plan:
+  - in_parallel:
+    - put: lock
+      params: {acquire: true}
+    - get: pivnet-opsman
+      params:
+        globs: ["*vsphere*"]
+      trigger: true
+
+- name: export-installation
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: env
+    - get: pivnet-opsman
+      params:
+        globs: ["*vsphere*"]
+      passed: [ lock-tiles ]
+      trigger: true
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    input_mapping:
+      files: env
+    output_mapping:
+      interpolated-files: env
+    params:
+      # all required
+      CREDHUB_CLIENT: ((credhub_client))
+      CREDHUB_SECRET: ((credhub_secret))
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      PREFIX: /((foundation))
+      ENV_FILE: ((foundation))/env/env.yml
+  - task: export-installation
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/export-installation.yml
+    params:
+      ENV_FILE: ((foundation))/env/env.yml
+  - put: installation
+    params:
+      file: installation/installation-*.zip
+
+      
+- name: upgrade-opsman
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: env
+    - get: installation
+    - get: pivnet-opsman
+      params:
+        globs: ["*vsphere*"]
+      trigger: true
+      passed:
+        - export-installation
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub_client))
+      CREDHUB_SECRET: ((credhub_secret))
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      PREFIX: /((foundation))
+      # A file path that includes env.yml, opsman.yml, download-opsman.yml
+      INTERPOLATION_PATH: ((foundation)) 
+    input_mapping:
+      files: env
+    output_mapping:
+      interpolated-files: env
+  - task: download-opsman-image
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/download-product.yml
+    params:
+      CONFIG_FILE: ((foundation))/config/download-opsman.yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) ops manager failed to download."
+    input_mapping:
+      config: env
+  - task: upgrade-opsman
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/upgrade-opsman.yml
+    input_mapping:
+      config: env
+      image: downloaded-product
+      secrets: env
+      state: env
+    params:
+      ENV_FILE: ((foundation))/env/env.yml
+      OPSMAN_CONFIG_FILE: ((foundation))/config/opsman.yml
+      STATE_FILE: ((foundation))/state/state.yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) ops manager failed to upgrade."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "((foundation)) ops manager successfully upgraded."
+
+
+- name: apply-product-changes
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: env
+    - get: pivnet-opsman
+      params:
+        globs: ["*vsphere*"]
+      passed:
+        - upgrade-opsman
+      trigger: true
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub_client))
+      CREDHUB_SECRET: ((credhub_secret))
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))"
+    input_mapping:
+      files: env
+    output_mapping:
+      interpolated-files: env
+  - task: apply-product-changes
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/apply-changes.yml
+    input_mapping:
+      env: env
+    params:
+      ENV_FILE: ((foundation))/env/env.yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) apply changes failed."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "((foundation)) apply changes succeeded."
+
+- name: unlock-tile
+  serial: true
+  plan:
+  - get: pivnet-opsman
+    trigger: true
+    passed:
+      - apply-product-changes
+    params:
+      globs: ["*vsphere*"]
+  - get: lock
+  - put: lock
+    params:
+      release: lock
+
+- name: force-unlock
+  serial: true
+  plan:
+  - get: lock
+  - put: lock
+    params:
+      release: lock
