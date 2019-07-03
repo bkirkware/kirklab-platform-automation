@@ -2,8 +2,9 @@
 groups:
 - name: deployment-pipeline
   jobs: 
+    - fetch-pivnet-pcc
     - lock-tiles
-    - fetch-pcc
+    - fetch-local-pcc
     - upload-and-stage-pcc
     - apply-product-changes
     - unlock-tile
@@ -62,7 +63,6 @@ resources:
     source:
       api_token: ((pivnet-refresh-token))
       product_slug: p-cloudcache
-      product_version: ^1\.7\..*$
 
   - name: pcc-stemcell
     type: s3
@@ -115,6 +115,14 @@ resources:
       private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
       branch: master
 
+  - name: variable
+    type: git
+    icon: github-circle
+    source:
+      uri: ((platform-automation-pipelines-kirklab-env))
+      private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
+      branch: master
+
 jobs:
 
 - name: force-unlock
@@ -124,7 +132,8 @@ jobs:
   - put: lock
     params:
       release: lock
-- name: fetch-pcc
+
+- name: fetch-pivnet-pcc
   plan:
   - in_parallel:
     - get: platform-automation-image
@@ -167,20 +176,12 @@ jobs:
         message: "((foundation)) PCC failed to download."
   - in_parallel:
     - put: pcc-product
-      params:
-        file: downloaded-product/*.pivotal
-    - put: pcc-stemcell
-      params:
-        file: pcc-stemcell/*.tgz
-    - put: pcc-stemcell-config
-      params:
-        file: pcc-stemcell-config/config.yml
+      inputs: pivnet-pcc
     on_failure:
       put: notify
       params:
         alert_type: failed
         message: "((foundation)) PCC failed to upload."
-
 
 - name: lock-tiles
   plan:
@@ -188,8 +189,51 @@ jobs:
     - put: lock
       params: {acquire: true}
     - get: pcc-product
-      passed: [ fetch-pcc ]
+      passed: [ fetch-pivnet-pcc ]
       trigger: true
+
+- name: fetch-local-pcc
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: configuration
+    - get: pcc-product
+      passed: [ lock-tiles ]
+      trigger: true
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub_client))
+      CREDHUB_SECRET: ((credhub_secret))
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))/download-product-configs"
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: configuration
+  - task: download-pcc-product-and-stemcell
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/download-product-s3.yml
+    params:
+      CONFIG_FILE: ((foundation))/download-product-configs/pcc.yml
+    input_mapping:
+      config: configuration
+    output_mapping: 
+      downloaded-stemcell: pcc-stemcell
+      assign-stemcell-config: pcc-stemcell-config
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) PCC failed to download."
       
 
 - name: upload-and-stage-pcc
@@ -203,11 +247,12 @@ jobs:
             unpack: true
         - get: pcc-product
           passed:
-            - lock-tiles
+            - fetch-local-pcc
           trigger: true
         - get: pcc-stemcell
         - get: pcc-stemcell-config
         - get: configuration
+        - get: variable
     - task: credhub-interpolate
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
@@ -279,6 +324,7 @@ jobs:
           params:
             unpack: true
         - get: configuration
+        - get: variable
         - get: pcc-product
           passed:
             - upload-and-stage-pcc
