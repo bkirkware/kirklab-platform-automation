@@ -7,6 +7,8 @@ groups:
     - upload-and-stage-pcc
     - apply-product-changes
     - unlock-tile
+    - register-broker
+    - upgrade-all-service-instances
 - name: ad-hoc-jobs
   jobs: 
     - force-unlock
@@ -123,7 +125,7 @@ jobs:
   - put: lock
     params:
       release: lock
-      
+
 - name: fetch-pcc
   plan:
   - in_parallel:
@@ -187,6 +189,11 @@ jobs:
   - in_parallel:
     - put: lock
       params: {acquire: true}
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) failed to lock."
     - get: pcc-product
       passed: [ fetch-pcc ]
       trigger: true
@@ -262,11 +269,6 @@ jobs:
         params:
           alert_type: failed
           message: "((foundation)) PCC stemcell failed to assign."
-      on_success:
-        put: notify
-        params:
-          alert_type: success
-          text: "((foundation)) PCC uploaded, staged, and ready to apply."
 
   
 - name: apply-product-changes
@@ -309,20 +311,134 @@ jobs:
         params:
           alert_type: failed
           message: "((foundation)) apply changes failed."
-      on_success:
+
+  
+- name: register-broker
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: pcc-product
+          passed:
+            - apply-product-changes
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: staged-config
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/staged-config.yml
+      params:
+        PRODUCT_NAME: p-cloudcache
+        ENV_FILE: ((foundation))/env/env.yml
+
+      input_mapping:
+        env: interpolated-files
+      output_mapping:
+        generated-config: generated-config
+    - task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errands.yml
+      input_mapping:
+        env: configuration
+        config: generated-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: register-broker
+      on_failure:
         put: notify
         params:
-          alert_type: success
-          text: "((foundation)) apply changes succeeded."
+          alert_type: failed
+          message: "((foundation)) PCC errand failed."
+  
+- name: upgrade-all-service-instances
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: pcc-product
+          passed:
+            - register-broker
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: staged-config
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/staged-config.yml
+      params:
+        PRODUCT_NAME: p-cloudcache
+        ENV_FILE: ((foundation))/env/env.yml
+
+      input_mapping:
+        env: interpolated-files
+      output_mapping:
+        generated-config: generated-config
+    - task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errands.yml
+      input_mapping:
+        env: configuration
+        config: generated-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: upgrade-all-service-instances
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) PCC errand failed."
 
 - name: unlock-tile
   serial: true
   plan:
   - get: pcc-product
     passed:
-      - apply-product-changes
+      - upgrade-all-service-instances
     trigger: true
   - get: lock
   - put: lock
     params:
       release: lock
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to unlock."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "((foundation)) PCC upgrade succeeded."
