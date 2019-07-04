@@ -340,27 +340,27 @@ jobs:
       input_mapping:
         files: configuration
       output_mapping:
-        interpolated-files: configuration
+        interpolated-files: interpolated-files
     - task: staged-config
       image: platform-automation-image
       file: platform-automation-tasks/tasks/staged-config.yml
       params:
         PRODUCT_NAME: p-cloudcache
         ENV_FILE: ((foundation))/env/env.yml
-
       input_mapping:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
     - task: run-errand
       image: platform-automation-image
-      file: configuration/custom-tasks/run-errands.yml
+      file: configuration/custom-tasks/run-errand.yml
       input_mapping:
-        env: configuration
+        env: interpolated-files
         config: generated-config
       params:
         ENV_FILE: ((foundation))/env/env.yml
         ERRAND_NAME: register-broker
+        CONFIG_FILE: p-cloudcache.yml
       on_failure:
         put: notify
         params:
@@ -394,27 +394,27 @@ jobs:
       input_mapping:
         files: configuration
       output_mapping:
-        interpolated-files: configuration
+        interpolated-files: interpolated-files
     - task: staged-config
       image: platform-automation-image
       file: platform-automation-tasks/tasks/staged-config.yml
       params:
         PRODUCT_NAME: p-cloudcache
         ENV_FILE: ((foundation))/env/env.yml
-
       input_mapping:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
     - task: run-errand
       image: platform-automation-image
-      file: configuration/custom-tasks/run-errands.yml
+      file: configuration/custom-tasks/run-errand.yml
       input_mapping:
-        env: configuration
+        env: interpolated-files
         config: generated-config
       params:
         ENV_FILE: ((foundation))/env/env.yml
         ERRAND_NAME: upgrade-all-service-instances
+        CONFIG_FILE: p-cloudcache.yml
       on_failure:
         put: notify
         params:
