@@ -123,7 +123,6 @@ As this is a lab automation configuration there are certain things left out and 
 - `Upgrade Planner` - Pivotal is in the process of creating an Upgrade Planner tool that provides guidance on the order and process to upgrade from one configuration to another. This is tremdous insight and is not incorporated into this automation. It is up to the user (me) to run the upgrade planner off-line and follow the recommendations by triggering pipelines in order
 - `Install from S3` - The way these pipelines check Pivnet resources results in duplicate downloads from Pivnet as the pipeline runs. I intend to refactor these pipelines to copy Pivnet releases to my local Minio S3-compatible endpoint so that they are only downloaded once. Currently there is a bug in `om` tool that prevents me from using unencrypted S3 endpoint.
 - `Install from Scratch` - These pipelines only work with a pre-configured environment. Building an environment from scratch or making configuration changes to tiles are still done through Ops Manager. I intend to adopt forward engineering practices in the future.
-- `BOSH Environment Alias` - After an Ops Manager upgrade, `bosh alias-env kirklab -e bosh.kirklab.io --ca-cert /var/tempest/workspaces/default/root_ca_certificate` needs to be run manually.
 
 ## To Do
 
