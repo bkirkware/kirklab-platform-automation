@@ -105,7 +105,7 @@ Following jobs within the `ad-hoc-jobs` group
 
 1. Bump the versions
     1. In kirklab-env repo, update `kirklab/download-product-configs/<product>.yml` and change `product-version-regex`
-    2. In kirklab-platform-automation repo, Update `upgrade-<product>.yml` and change the `pivnet-<product>` resource's `product_version` regular expression
+    2. In kirklab-platform-automation repo, Re-fly `upgrade-<product>.yml` with the updated `product_version` variable
 2. Deploy
     1. Commit the configuration changes and push to code repo
     2. Fly the updated pipeline (see fly-pipelines.sh for syntax)
