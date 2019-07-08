@@ -127,3 +127,4 @@ As this is a lab automation configuration there are certain things left out and 
 ## To Do
 
 - Provide Credhub seed script
+- Fix PKS pipeline stemcell issue
