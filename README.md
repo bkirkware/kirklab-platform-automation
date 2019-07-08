@@ -8,12 +8,25 @@ My approach is focused on keeping an existing homelab environment up-to-date wit
 
 - Configuration in this repository is for my homelab environment
 - The following pipelines are available:
-  - Ops Manager
-  - Pivotal Cloud Cache
+  - PCF Ops Manager
+  - Pivotal CloudCache
+  - VMware Harbor Registry
+  - Healthwatch
+  - MySQL for PCF v2
+  - Pivotal Application Service
+  - Enterprise PKS
+  - RabbitMQ
+  - Redis
+  - Spring Cloud Data Flow
+  - Spring Cloud Services
 
-## Repo Directory Structure
+## Repo Directory Structures
 
-[kirklab-env](https://github.com/bkirkware/kirklab-env) has the following structure.
+[kirklab-platform-automation](https://github.com/bkirkware/kirklab-platform-automation) contains Concourse pipelines and scripts to fly them. **You are here.**
+
+[kirklab-locks](https://github.com/bkirkware/kirklab-locks) contains lock files used by the Concourse [pool-resource](https://github.com/concourse/pool-resource) to ensure only one pipeline is working on a foundation at any given time.
+
+[kirklab-env](https://github.com/bkirkware/kirklab-env) contains custom Concourse tasks and foundation configurations and has the following structure.
 
 ```ascii
 ├── custom-tasks
@@ -33,16 +46,16 @@ My approach is focused on keeping an existing homelab environment up-to-date wit
 
 ## Pipelines Explained
 
-### General Concepts
+### General Information
 
-- `Locks` - Each pipeline leverages locks to ensure that only one pipeline is working on the foundation at any given point. If a pipeline is triggered while another pipeline has the lock, then it will poll every 1 minute waiting for the lock to be released. Check out info on the concourse [pool-resource](https://github.com/concourse/pool-resource). The corresponding lock repository used in my lab is [kirklab-locks](https://github.com/bkirkware/kirklab-locks)
-- `Building blocks` - Platform Automation for PCF provides a *secure container image* with tools for interacting with PCF, *common tasks* to be performed against ops manager, and a set of *documentation*. Creation of automation is an iterative process that requires feedback and adjustements. Pipelines may start out similar accross organizations, but ultimately they should be tuned provide benefit of the users and resolve toil. This is an engineering discipline and benefits from the same practices common to software development. Please use all the tools available through Platform Automation for PCF and create something efficent and useful for you
-- `Slack Notifications` - These pipelines leverage Dylan Arbourd's [Concourse Slack Alert Resource](https://github.com/arbourd/concourse-slack-alert-resource).
-- `Errands` - All tiles in Ops Manager have all post-deploy errands disabled. This is done to make a full apply changes take less time and be more likely to succeed. Individual errands are run during the upgrade pipeline for each tile as required.
+- **Triggered by Pivnet** - These pipelines watch a Pivnet resource for new updates based on a product version regular expression.
+- **Slack Notifications** - These pipelines leverage Dylan Arbourd's [Concourse Slack Alert Resource](https://github.com/arbourd/concourse-slack-alert-resource).
+- **Custom Tasks** - These pipelines use one custom task (run-errand)
+- **Errands** - All tiles in Ops Manager have all post-deploy errands disabled. This is done to make a full apply changes take less time and be more likely to succeed. Individual errands are run during the upgrade pipeline for each tile as required.
 
 ### Ops Manager and Director Pipeline
 
-The ops manager and director pipeline is a single pipeline used for upgrade of ops manager and director pair.
+The Ops Manager and director pipeline is a single pipeline used for upgrade of ops manager and director pair.
 
 ![upgrade-opsman](/docs/upgrade-opsman.png)
 
@@ -110,6 +123,7 @@ As this is a lab automation configuration there are certain things left out and 
 - `Upgrade Planner` - Pivotal is in the process of creating an Upgrade Planner tool that provides guidance on the order and process to upgrade from one configuration to another. This is tremdous insight and is not incorporated into this automation. It is up to the user (me) to run the upgrade planner off-line and follow the recommendations by triggering pipelines in order
 - `Install from S3` - The way these pipelines check Pivnet resources results in duplicate downloads from Pivnet as the pipeline runs. I intend to refactor these pipelines to copy Pivnet releases to my local Minio S3-compatible endpoint so that they are only downloaded once. Currently there is a bug in `om` tool that prevents me from using unencrypted S3 endpoint.
 - `Install from Scratch` - These pipelines only work with a pre-configured environment. Building an environment from scratch or making configuration changes to tiles are still done through Ops Manager. I intend to adopt forward engineering practices in the future.
+- `BOSH Environment Alias` - After an Ops Manager upgrade, `bosh alias-env kirklab -e bosh.kirklab.io --ca-cert /var/tempest/workspaces/default/root_ca_certificate` needs to be run manually.
 
 ## To Do
 

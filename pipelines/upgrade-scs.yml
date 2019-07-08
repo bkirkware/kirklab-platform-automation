@@ -7,8 +7,8 @@ groups:
     - upload-and-stage-((product_shortname))
     - apply-product-changes
     - unlock-tile
-    - register-broker
-    - upgrade-all-service-instances
+    - deploy-service-broker
+    - register-service-broker
 - name: ad-hoc-jobs
   jobs: 
     - force-unlock
@@ -313,7 +313,7 @@ jobs:
           message: "((foundation)) apply changes failed."
 
   
-- name: register-broker
+- name: deploy-service-broker
   plan:
     - in_parallel:
         - get: platform-automation-image
@@ -359,15 +359,16 @@ jobs:
         config: generated-config
       params:
         ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: register-broker
+        ERRAND_NAME: deploy-service-broker
         CONFIG_FILE: ((product_slug)).yml
       on_failure:
         put: notify
         params:
           alert_type: failed
           message: "((foundation)) ((product_shortname)) errand failed."
+
   
-- name: upgrade-all-service-instances
+- name: register-service-broker
   plan:
     - in_parallel:
         - get: platform-automation-image
@@ -379,7 +380,7 @@ jobs:
         - get: configuration
         - get: ((product_shortname))-product
           passed:
-            - register-broker
+            - deploy-service-broker
           trigger: true
     - task: credhub-interpolate
       image: platform-automation-image
@@ -413,20 +414,21 @@ jobs:
         config: generated-config
       params:
         ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: upgrade-all-service-instances
+        ERRAND_NAME: register-service-broker
         CONFIG_FILE: ((product_slug)).yml
       on_failure:
         put: notify
         params:
           alert_type: failed
           message: "((foundation)) ((product_shortname)) errand failed."
+  
 
 - name: unlock-tile
   serial: true
   plan:
   - get: ((product_shortname))-product
     passed:
-      - upgrade-all-service-instances
+      - register-service-broker
     trigger: true
   - get: lock
   - put: lock

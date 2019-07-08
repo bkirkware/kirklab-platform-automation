@@ -7,7 +7,6 @@ groups:
     - upload-and-stage-((product_shortname))
     - apply-product-changes
     - unlock-tile
-    - register-broker
     - upgrade-all-service-instances
 - name: ad-hoc-jobs
   jobs: 
@@ -311,61 +310,6 @@ jobs:
         params:
           alert_type: failed
           message: "((foundation)) apply changes failed."
-
-  
-- name: register-broker
-  plan:
-    - in_parallel:
-        - get: platform-automation-image
-          params:
-            unpack: true
-        - get: platform-automation-tasks
-          params:
-            unpack: true
-        - get: configuration
-        - get: ((product_shortname))-product
-          passed:
-            - apply-product-changes
-          trigger: true
-    - task: credhub-interpolate
-      image: platform-automation-image
-      file: platform-automation-tasks/tasks/credhub-interpolate.yml
-      params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
-        PREFIX: /((foundation))
-        INTERPOLATION_PATH: "((foundation))"
-      input_mapping:
-        files: configuration
-      output_mapping:
-        interpolated-files: interpolated-files
-    - task: staged-config
-      image: platform-automation-image
-      file: platform-automation-tasks/tasks/staged-config.yml
-      params:
-        PRODUCT_NAME: ((product_slug))
-        ENV_FILE: ((foundation))/env/env.yml
-      input_mapping:
-        env: interpolated-files
-      output_mapping:
-        generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: register-broker
-        CONFIG_FILE: ((product_slug)).yml
-      on_failure:
-        put: notify
-        params:
-          alert_type: failed
-          message: "((foundation)) ((product_shortname)) errand failed."
   
 - name: upgrade-all-service-instances
   plan:
@@ -379,7 +323,7 @@ jobs:
         - get: configuration
         - get: ((product_shortname))-product
           passed:
-            - register-broker
+            - apply-product-changes
           trigger: true
     - task: credhub-interpolate
       image: platform-automation-image
