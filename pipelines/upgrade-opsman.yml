@@ -200,11 +200,6 @@ jobs:
       params:
         alert_type: failed
         message: "((foundation)) ops manager failed to upgrade."
-    on_success:
-      put: notify
-      params:
-        alert_type: success
-        text: "((foundation)) ops manager successfully upgraded."
 
 
 - name: apply-product-changes
@@ -253,7 +248,7 @@ jobs:
       put: notify
       params:
         alert_type: success
-        text: "((foundation)) apply changes succeeded."
+        text: "((foundation)) ops manager and BOSH director successfully upgraded."
 
 - name: unlock-tile
   serial: true
