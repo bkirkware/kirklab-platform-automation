@@ -59,7 +59,7 @@ The Ops Manager and director pipeline is a single pipeline used for upgrade of o
 
 ![upgrade-opsman](/docs/upgrade-opsman.png)
 
-1. `lock-tiles` - Claim the lock for the specific foundation. Waits untile the lock is unclaimed before it progresses.
+1. `lock-tiles` - Claim the lock for the specific foundation. Waits until the lock is unclaimed before it progresses.
 2. `export-installation` - Exports the Ops Manager and tile configuration and pushes it to S3 compatible bucket.
 3. `upgrade-opsman` - Tears down existing Ops Manager and deploys a new one. Imports the installation settings.
 4. `apply-product-changes` - Run an apply changes to update the BOSH director.
@@ -105,10 +105,10 @@ Following jobs within the `ad-hoc-jobs` group
 
 1. Bump the versions
     1. In kirklab-env repo, update `kirklab/download-product-configs/<product>.yml` and change `product-version-regex`
-    2. In kirklab-platform-automation repo, Re-fly `upgrade-<product>.yml` with the updated `product_version` variable
+    2. In kirklab-platform-automation repo, Update `scripts/fly-pipelines.sh` with the updated `product_version` variable
 2. Deploy
     1. Commit the configuration changes and push to code repo
-    2. Fly the updated pipeline (see fly-pipelines.sh for syntax)
+    2. Re-fly the pipeline with the updated product_version
 
 If the major version update requires tile configuration, the pipeline will fail at the `apply-product-changes` step. Make the configuration changes manually in Ops Manager and re-run this step to complete the upgrade.
 
