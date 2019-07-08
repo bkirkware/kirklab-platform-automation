@@ -42,7 +42,7 @@ My approach is focused on keeping an existing homelab environment up-to-date wit
 
 ### Ops Manager and Director Pipeline
 
-The ops manager and director pipeline is a single pipeline used for both installation and upgrade of ops manager and director pair.
+The ops manager and director pipeline is a single pipeline used for upgrade of ops manager and director pair.
 
 ![upgrade-opsman](/docs/upgrade-opsman.png)
 
