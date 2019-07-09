@@ -1,8 +1,8 @@
 ## Control Ops Manager
-fly -t kirklab set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-opsman.yml -v foundation=kirklab-control
+fly -t kirklab set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control
 fly -t kirklab unpause-pipeline -p upgrade-control-opsman
 
-## Control Ops Manager
+## Ops Manager
 fly -t kirklab set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-opsman.yml -v foundation=kirklab
 fly -t kirklab unpause-pipeline -p upgrade-opsman
 
