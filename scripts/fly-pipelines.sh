@@ -11,7 +11,7 @@ fly -t kirklab set-pipeline -p upgrade-pcc -c ../pipelines/upgrade-pcc.yml -v fo
 fly -t kirklab unpause-pipeline -p upgrade-pcc
 
 ## Harbor Container Registry
-fly -t kirklab set-pipeline -p upgrade-harbor -c ../pipelines/upgrade-harbor.yml -v foundation=kirklab -v product_slug=harbor-container-registry -v product_shortname=harbor -v product_version="^1\.7\..*$"
+fly -t kirklab set-pipeline -p upgrade-harbor -c ../pipelines/upgrade-harbor.yml -v foundation=kirklab -v product_slug=harbor-container-registry -v product_shortname=harbor -v product_version="^1\.8\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-harbor
 
 ## Healthwatch
