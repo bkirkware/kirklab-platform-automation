@@ -2,11 +2,11 @@
 groups:
 - name: deployment-pipeline
   jobs: 
-    - lock-tiles
+    - lock-((foundation))
     - fetch-((product_shortname))
     - upload-and-stage-((product_shortname))
     - apply-product-changes
-    - unlock-tile
+    - unlock-((foundation))
     - deploy-service-broker
     - register-service-broker
 - name: ad-hoc-jobs
@@ -184,7 +184,7 @@ jobs:
         message: "((foundation)) ((product_shortname)) failed to upload."
 
 
-- name: lock-tiles
+- name: lock-((foundation))
   plan:
   - in_parallel:
     - put: lock
@@ -210,7 +210,7 @@ jobs:
             unpack: true
         - get: ((product_shortname))-product
           passed:
-            - lock-tiles
+            - lock-((foundation))
           trigger: true
         - get: ((product_shortname))-stemcell
         - get: ((product_shortname))-stemcell-config
@@ -423,7 +423,7 @@ jobs:
           message: "((foundation)) ((product_shortname)) errand failed."
   
 
-- name: unlock-tile
+- name: unlock-((foundation))
   serial: true
   plan:
   - get: ((product_shortname))-product

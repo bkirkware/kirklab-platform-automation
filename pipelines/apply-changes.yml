@@ -1,0 +1,166 @@
+---
+groups:
+- name: deployment-pipeline
+  jobs: 
+    - lock-((foundation))
+    - apply-product-changes
+    - unlock-((foundation))
+- name: ad-hoc-jobs
+  jobs: 
+    - force-lock
+    - force-unlock
+
+
+
+resource_types:
+
+- name: slack-alert
+  type: docker-image
+  source:
+    repository: arbourd/concourse-slack-alert-resource
+
+- name: pivnet
+  type: docker-image
+  source:
+    repository: pivotalcf/pivnet-resource
+    tags: latest-final
+
+resources:
+
+- name: notify
+  type: slack-alert
+  icon: slack
+  source:
+    url: ((slack_webhook))
+
+- name: platform-automation-tasks
+  type: s3
+  icon: file
+  source:
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    endpoint: ((minio_endpoint))
+    bucket: ((minio_buckets_platform_automation))
+    regexp: .*tasks-(.*).zip
+    disable_ssl: true
+
+- name: platform-automation-image
+  type: s3
+  icon: file
+  source:
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    endpoint: ((minio_endpoint))
+    bucket: ((minio_buckets_platform_automation))
+    regexp: .*image-(.*).tgz
+    disable_ssl: true
+
+- name: lock
+  type: pool
+  icon: lock
+  source:
+    branch: master
+    uri: git@github.com:bkirkware/kirklab-locks
+    private_key: ((platform-automation-pipelines-kirklab-locks-key.private_key))
+    pool: ((foundation))
+    retry_delay: 1m
+
+- name: configuration
+  type: git
+  icon: github-circle
+  source:
+    uri: ((platform-automation-pipelines-kirklab-env))
+    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
+    branch: master
+
+jobs:
+
+- name: force-unlock
+  serial: true
+  plan:
+  - get: lock
+  - put: lock
+    params:
+      release: lock
+
+- name: force-lock
+  serial: true
+  plan:
+  - get: lock
+  - put: lock
+    params: {acquire: true}
+
+
+- name: lock-((foundation))
+  plan:
+  - put: lock
+    params: {acquire: true}
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to lock."
+      
+
+  
+- name: apply-product-changes
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: lock
+          passed:
+            - lock-((foundation))
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub_client))
+        CREDHUB_SECRET: ((credhub_secret))
+        CREDHUB_SERVER: ((credhub_server))
+        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: apply-product-changes
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/apply-changes.yml
+      input_mapping:
+        env: configuration
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) apply changes failed."
+
+- name: unlock-((foundation))
+  serial: true
+  plan:
+  - get: lock
+    passed:
+      - apply-product-changes
+    trigger: true
+  - put: lock
+    params:
+      release: lock
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to unlock."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "((foundation)) apply changes succeeded."

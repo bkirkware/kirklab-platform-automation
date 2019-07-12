@@ -2,11 +2,11 @@
 groups:
 - name: deployment-pipeline
   jobs: 
-    - lock-tiles
+    - lock-((foundation))
     - export-installation
     - upgrade-opsman
     - apply-product-changes
-    - unlock-tile
+    - unlock-((foundation))
 - name: ad-hoc-jobs
   jobs: 
     - force-unlock
@@ -89,7 +89,7 @@ resources:
 
 jobs:
 
-- name: lock-tiles
+- name: lock-((foundation))
   plan:
   - in_parallel:
     - put: lock
@@ -112,7 +112,7 @@ jobs:
     - get: pivnet-opsman
       params:
         globs: ["*vsphere*"]
-      passed: [ lock-tiles ]
+      passed: [ lock-((foundation)) ]
       trigger: true
   - task: credhub-interpolate
     image: platform-automation-image
@@ -250,7 +250,7 @@ jobs:
         alert_type: success
         text: "((foundation)) ops manager and BOSH director successfully upgraded."
 
-- name: unlock-tile
+- name: unlock-((foundation))
   serial: true
   plan:
   - get: pivnet-opsman

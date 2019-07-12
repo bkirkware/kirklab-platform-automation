@@ -26,6 +26,10 @@ fly -t kirklab unpause-pipeline -p upgrade-mysql
 fly -t kirklab set-pipeline -p upgrade-pas-srt -c ../pipelines/upgrade-pas-srt.yml -v foundation=kirklab -v product_slug=cf -v product_shortname=pas-srt -v product_version="^2\.6\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-pas-srt
 
+## Control Plane Pivotal Application Service - Small Runtime
+fly -t kirklab set-pipeline -p upgrade-control-pas-srt -c ../pipelines/upgrade-pas-srt.yml -v foundation=kirklab-control -v product_slug=cf -v product_shortname=pas-srt -v product_version="^2\.6\..*$"
+fly -t kirklab unpause-pipeline -p upgrade-control-pas-srt
+
 ## Pivotal Container Service
 fly -t kirklab set-pipeline -p upgrade-pks -c ../pipelines/upgrade-pks.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.4\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-pks
@@ -46,5 +50,12 @@ fly -t kirklab unpause-pipeline -p upgrade-scdf
 fly -t kirklab set-pipeline -p upgrade-scs -c ../pipelines/upgrade-scs.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_shortname=scs -v product_version="^2\.0\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-scs
 
+# Kirklab Manual Apply Changes
+fly -t kirklab set-pipeline -p apply-changes -c ../pipelines/apply-changes.yml -v foundation=kirklab
+fly -t kirklab unpause-pipeline -p apply-changes
+
+# Kirklab Control Manual Apply Changes
+fly -t kirklab set-pipeline -p control-apply-changes -c ../pipelines/apply-changes.yml -v foundation=kirklab-control
+fly -t kirklab unpause-pipeline -p control-apply-changes
 
 
