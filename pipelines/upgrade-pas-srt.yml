@@ -90,7 +90,7 @@ resources:
     secret_access_key: ((minio_secret_access_key))
     endpoint: ((minio_endpoint))
     bucket: ((minio_buckets_pivnet_products))
-    regexp: ((product_slug))-(.*).pivotal
+    regexp: srt-(.*).pivotal
     disable_ssl: true
 
 - name: ((product_shortname))-stemcell-config
