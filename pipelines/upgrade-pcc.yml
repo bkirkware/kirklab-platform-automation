@@ -2,8 +2,9 @@
 groups:
 - name: deployment-pipeline
   jobs: 
+    - fetch-pivnet-((product_shortname))
     - lock-((foundation))
-    - fetch-((product_shortname))
+    - fetch-local-((product_shortname))
     - upload-and-stage-((product_shortname))
     - apply-product-changes
     - unlock-((foundation))
@@ -17,104 +18,105 @@ groups:
 
 resource_types:
 
-- name: slack-alert
-  type: docker-image
-  source:
-    repository: arbourd/concourse-slack-alert-resource
+  - name: slack-alert
+    type: docker-image
+    source:
+      repository: arbourd/concourse-slack-alert-resource
 
-- name: pivnet
-  type: docker-image
-  source:
-    repository: pivotalcf/pivnet-resource
-    tags: latest-final
+  - name: pivnet
+    type: docker-image
+    source:
+      repository: pivotalcf/pivnet-resource
+      tags: latest-final
 
 resources:
 
-- name: notify
-  type: slack-alert
-  icon: slack
-  source:
-    url: ((slack_webhook))
+  - name: notify
+    type: slack-alert
+    icon: slack
+    source:
+      url: ((slack_webhook))
 
-- name: platform-automation-tasks
-  type: s3
-  icon: file
-  source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_platform_automation))
-    regexp: .*tasks-(.*).zip
-    disable_ssl: true
+  - name: platform-automation-tasks
+    type: s3
+    icon: file
+    source:
+      access_key_id: ((minio_access_key_id))
+      secret_access_key: ((minio_secret_access_key))
+      endpoint: ((minio_endpoint))
+      bucket: ((minio_buckets_platform_automation))
+      regexp: .*tasks-(.*).zip
+      disable_ssl: true
 
-- name: platform-automation-image
-  type: s3
-  icon: file
-  source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_platform_automation))
-    regexp: .*image-(.*).tgz
-    disable_ssl: true
+  - name: platform-automation-image
+    type: s3
+    icon: file
+    source:
+      access_key_id: ((minio_access_key_id))
+      secret_access_key: ((minio_secret_access_key))
+      endpoint: ((minio_endpoint))
+      bucket: ((minio_buckets_platform_automation))
+      regexp: .*image-(.*).tgz
+      disable_ssl: true
 
-- name: pivnet-((product_shortname))
-  type: pivnet
-  icon: file-powerpoint
-  source:
-    api_token: ((pivnet-refresh-token))
-    product_slug: ((product_slug))
-    product_version: ((product_version))
+  - name: pivnet-((product_shortname))
+    type: pivnet
+    icon: file-powerpoint
+    source:
+      api_token: ((pivnet-refresh-token))
+      product_slug: ((product_slug))
+      product_version: ((product_version))
 
-- name: ((product_shortname))-stemcell
-  type: s3
-  icon: ubuntu
-  source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_pivnet_products))
-    regexp: ((product_shortname))-stemcell/bosh-stemcell-(.*)-vsphere.*\.tgz
-    disable_ssl: true
+  - name: ((product_shortname))-stemcell
+    type: s3
+    icon: ubuntu
+    source:
+      access_key_id: ((minio_access_key_id))
+      secret_access_key: ((minio_secret_access_key))
+      endpoint: ((minio_endpoint))
+      bucket: ((minio_buckets_pivnet_products))
+      regexp: ((product_shortname))-stemcell/\[stemcells-ubuntu-.*,(.*)\]bosh-stemcell-.*-vsphere.*\.tgz
+      disable_ssl: true
 
-- name: ((product_shortname))-product
-  type: s3
-  icon: file
-  source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_pivnet_products))
-    regexp: ((product_slug))-(.*).pivotal
-    disable_ssl: true
+  - name: ((product_shortname))-product
+    type: s3
+    icon: file
+    source:
+      access_key_id: ((minio_access_key_id))
+      secret_access_key: ((minio_secret_access_key))
+      endpoint: ((minio_endpoint))
+      bucket: ((minio_buckets_pivnet_products))
+      regexp: \[((product_slug)),(.*)\]((product_slug))-.*\.pivotal
+      disable_ssl: true
 
-- name: ((product_shortname))-stemcell-config
-  type: s3
-  icon: file-document
-  source:
-    access_key_id: ((aws_access_key_id))
-    secret_access_key: ((aws_secret_access_key))
-    region_name: ((aws_region_name))
-    bucket: ((aws_buckets_assign_stemcell_config))
-    versioned_file: ((foundation))/((product_shortname))/config.yml
+  - name: ((product_shortname))-stemcell-config
+    type: s3
+    icon: file-document
+    source:
+      access_key_id: ((aws_access_key_id))
+      secret_access_key: ((aws_secret_access_key))
+      region_name: ((aws_region_name))
+      bucket: ((aws_buckets_assign_stemcell_config))
+      versioned_file: ((foundation))/((product_shortname))/config.yml
 
-- name: lock
-  type: pool
-  icon: lock
-  source:
-    branch: master
-    uri: git@github.com:bkirkware/kirklab-locks
-    private_key: ((platform-automation-pipelines-kirklab-locks-key.private_key))
-    pool: ((foundation))
-    retry_delay: 1m
+  - name: lock
+    type: pool
+    icon: lock
+    source:
+      branch: master
+      uri: git@github.com:bkirkware/kirklab-locks
+      private_key: ((platform-automation-pipelines-kirklab-locks-key.private_key))
+      pool: ((foundation))
+      retry_delay: 1m
 
-- name: configuration
-  type: git
-  icon: github-circle
-  source:
-    uri: ((platform-automation-pipelines-kirklab-env))
-    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
-    branch: master
+  # configurations
+  - name: configuration
+    type: git
+    icon: github-circle
+    source:
+      uri: ((platform-automation-pipelines-kirklab-env))
+      private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
+      branch: master
 
 jobs:
 
@@ -126,7 +128,7 @@ jobs:
     params:
       release: lock
 
-- name: fetch-((product_shortname))
+- name: fetch-pivnet-((product_shortname))
   plan:
   - in_parallel:
     - get: platform-automation-image
@@ -160,6 +162,7 @@ jobs:
     input_mapping:
       config: configuration
     output_mapping: 
+      downloaded-product: ((product_shortname))-product
       downloaded-stemcell: ((product_shortname))-stemcell
       assign-stemcell-config: ((product_shortname))-stemcell-config
     on_failure:
@@ -170,7 +173,7 @@ jobs:
   - in_parallel:
     - put: ((product_shortname))-product
       params:
-        file: downloaded-product/*.pivotal
+        file: ((product_shortname))-product/*.pivotal
     - put: ((product_shortname))-stemcell
       params:
         file: ((product_shortname))-stemcell/*.tgz
@@ -183,7 +186,6 @@ jobs:
         alert_type: failed
         message: "((foundation)) ((product_shortname)) failed to upload."
 
-
 - name: lock-((foundation))
   plan:
   - in_parallel:
@@ -195,8 +197,52 @@ jobs:
           alert_type: failed
           message: "((foundation)) failed to lock."
     - get: ((product_shortname))-product
-      passed: [ fetch-((product_shortname)) ]
+      passed: [ fetch-pivnet-((product_shortname)) ]
       trigger: true
+
+- name: fetch-local-((product_shortname))
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: configuration
+    - get: ((product_shortname))-product
+      passed: [ lock-((foundation)) ]
+      trigger: true
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub_client))
+      CREDHUB_SECRET: ((credhub_secret))
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))/download-product-configs"
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: configuration
+  - task: download-((product_shortname))-product-and-stemcell
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/download-product-s3.yml
+    params:
+      CONFIG_FILE: ((foundation))/download-product-configs/((product_shortname)).yml
+    input_mapping:
+      config: configuration
+    output_mapping: 
+      downloaded-product: ((product_shortname))-product
+      downloaded-stemcell: ((product_shortname))-stemcell
+      assign-stemcell-config: ((product_shortname))-stemcell-config
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) ((product_shortname)) failed to download."
       
 
 - name: upload-and-stage-((product_shortname))
@@ -210,7 +256,7 @@ jobs:
             unpack: true
         - get: ((product_shortname))-product
           passed:
-            - lock-((foundation))
+            - fetch-local-((product_shortname))
           trigger: true
         - get: ((product_shortname))-stemcell
         - get: ((product_shortname))-stemcell-config
@@ -312,7 +358,6 @@ jobs:
           alert_type: failed
           message: "((foundation)) apply changes failed."
 
-  
 - name: register-broker
   plan:
     - in_parallel:
