@@ -1,9 +1,9 @@
 ## Control Ops Manager
-fly -t kirklab set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control
+fly -t kirklab set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control -v product_version="^2\.6\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-control-opsman
 
 ## Ops Manager
-fly -t kirklab set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-opsman.yml -v foundation=kirklab
+fly -t kirklab set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-opsman.yml -v foundation=kirklab -v product_version="^2\.6\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-opsman
 
 ## Pivotal Cloud Cache
@@ -35,7 +35,7 @@ fly -t kirklab set-pipeline -p upgrade-pks -c ../pipelines/upgrade-pks.yml -v fo
 fly -t kirklab unpause-pipeline -p upgrade-pks
 
 ## RabbitMQ
-fly -t kirklab set-pipeline -p upgrade-rabbitmq -c ../pipelines/upgrade-rabbitmq.yml -v foundation=kirklab -v product_slug=p-rabbitmq -v product_shortname=rabbitmq -v product_version="^1\.16\..*$"
+fly -t kirklab set-pipeline -p upgrade-rabbitmq -c ../pipelines/upgrade-rabbitmq.yml -v foundation=kirklab -v product_slug=p-rabbitmq -v product_shortname=rabbitmq -v product_version="^1\.17\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-rabbitmq
 
 ## Redis

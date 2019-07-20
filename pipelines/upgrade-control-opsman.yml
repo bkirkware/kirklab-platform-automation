@@ -2,6 +2,7 @@
 groups:
 - name: deployment-pipeline
   jobs: 
+    - fetch-pivnet-opsman
     - lock-kirklab
     - lock-control
     - export-installation
@@ -61,7 +62,18 @@ resources:
   source:
     api_token: ((pivnet-refresh-token))
     product_slug: ops-manager
-    product_version: ^2\.6\..*$
+    product_version: ((product_version))
+
+- name: opsman-product
+  type: s3
+  icon: file
+  source:
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    endpoint: ((minio_endpoint))
+    bucket: ((minio_buckets_pivnet_products))
+    regexp: \[ops-manager,(.*)\].*.ova
+    disable_ssl: true
 
 - name: platform-automation-tasks
   type: s3
@@ -102,14 +114,63 @@ resources:
 
 jobs:
 
+- name: fetch-pivnet-opsman
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: env
+    - get: pivnet-opsman
+      trigger: true
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub_client))
+      CREDHUB_SECRET: ((credhub_secret))
+      CREDHUB_SERVER: ((credhub_server))
+      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))"
+    input_mapping:
+      files: env
+    output_mapping:
+      interpolated-files: env
+  - task: download-opsman-product
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/download-product.yml
+    params:
+      CONFIG_FILE: ((foundation))/config/download-opsman.yml
+    input_mapping:
+      config: env
+    output_mapping: 
+      downloaded-product: opsman-product
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) opsman failed to download."
+  - in_parallel:
+    - put: opsman-product
+      params:
+        file: opsman-product/*.ova
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) opsman failed to upload."
+
 - name: lock-kirklab
   plan:
   - in_parallel:
     - put: lock-kirklab
       params: {acquire: true}
-    - get: pivnet-opsman
-      params:
-        globs: ["*vsphere*"]
+    - get: opsman-product
+      passed: [ fetch-pivnet-opsman ]
       trigger: true
 
 - name: lock-control
@@ -117,9 +178,7 @@ jobs:
   - in_parallel:
     - put: lock-control
       params: {acquire: true}
-    - get: pivnet-opsman
-      params:
-        globs: ["*vsphere*"]
+    - get: opsman-product
       passed: [ lock-kirklab ]
       trigger: true
 
@@ -133,9 +192,7 @@ jobs:
       params:
         unpack: true
     - get: env
-    - get: pivnet-opsman
-      params:
-        globs: ["*vsphere*"]
+    - get: opsman-product
       passed: [ lock-control ]
       trigger: true
   - task: credhub-interpolate
@@ -174,9 +231,7 @@ jobs:
         unpack: true
     - get: env
     - get: installation
-    - get: pivnet-opsman
-      params:
-        globs: ["*vsphere*"]
+    - get: opsman-product
       trigger: true
       passed:
         - export-installation
@@ -236,9 +291,7 @@ jobs:
       params:
         unpack: true
     - get: env
-    - get: pivnet-opsman
-      params:
-        globs: ["*vsphere*"]
+    - get: opsman-product
       passed:
         - upgrade-opsman
       trigger: true
@@ -277,12 +330,10 @@ jobs:
 - name: unlock-control
   serial: true
   plan:
-  - get: pivnet-opsman
+  - get: opsman-product
     trigger: true
     passed:
       - apply-product-changes
-    params:
-      globs: ["*vsphere*"]
   - get: lock-control
   - put: lock-control
     params:
@@ -292,12 +343,10 @@ jobs:
 - name: unlock-kirklab
   serial: true
   plan:
-  - get: pivnet-opsman
+  - get: opsman-product
     trigger: true
     passed:
       - unlock-control
-    params:
-      globs: ["*vsphere*"]
   - get: lock-kirklab
   - put: lock-kirklab
     params:
