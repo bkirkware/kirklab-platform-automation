@@ -73,7 +73,7 @@ resources:
     access_key_id: ((minio_access_key_id))
     secret_access_key: ((minio_secret_access_key))
     endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_pivnet_products))
+    bucket: ((foundation))-pivnet-products
     regexp: ((product_shortname))-stemcell/\[stemcells-ubuntu-.*,(.*)\]bosh-stemcell-.*-vsphere.*\.tgz
     disable_ssl: true
 
@@ -84,7 +84,7 @@ resources:
     access_key_id: ((minio_access_key_id))
     secret_access_key: ((minio_secret_access_key))
     endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_pivnet_products))
+    bucket: ((foundation))-pivnet-products
     regexp: \[((product_slug)),(.*)\]((product_slug))-.*\.pivotal
     disable_ssl: true
 

@@ -1,4 +1,14 @@
 ---
+groups:
+- name: deployment-pipeline
+  jobs: 
+    - lock-((foundation))
+    - export-installation
+    - unlock-((foundation))
+- name: ad-hoc-jobs
+  jobs: 
+    - force-unlock
+
 resource_types:
 - name: pivnet
   type: docker-image
@@ -43,15 +53,46 @@ resources:
   source:
     regexp: installation-(.*).zip
     endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_installation))
+    bucket: ((foundation))-installation
     access_key_id: ((minio_access_key_id))
     secret_access_key: ((minio_secret_access_key))
     disable_ssl: true
+
+- name: lock
+  type: pool
+  icon: lock
+  source:
+    branch: master
+    uri: git@github.com:bkirkware/kirklab-locks
+    private_key: ((platform-automation-pipelines-kirklab-locks-key.private_key))
+    pool: ((foundation))
+    retry_delay: 1m
 jobs:
+
+- name: force-unlock
+  serial: true
+  plan:
+  - get: lock
+  - put: lock
+    params:
+      release: lock
+
+
+
+- name: lock-((foundation))
+  plan:
+  - get: daily
+    trigger: true
+  - put: lock
+    params: {acquire: true}
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to lock."
+
 - name: export-installation
   plan:
-    - get: daily
-      trigger: true
     - get: platform-automation-image
       resource: platform-automation
       params:
@@ -63,6 +104,10 @@ jobs:
         globs: ["*tasks*.zip"]
         unpack: true
     - get: env
+    - get: lock
+      passed:
+        - lock-((foundation))
+      trigger: true
     - task: credhub-interpolate
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
@@ -96,3 +141,19 @@ jobs:
         params:
           alert_type: failed
           message: "((foundation)) export installation failed to upload."
+
+- name: unlock-((foundation))
+  serial: true
+  plan:
+  - get: lock
+    passed:
+      - export-installation
+    trigger: true
+  - put: lock
+    params:
+      release: lock
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to unlock."
