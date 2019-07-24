@@ -58,7 +58,7 @@ fly -t kirklab set-pipeline -p upgrade-scs -c ../pipelines/upgrade-scs.yml -v fo
 fly -t kirklab unpause-pipeline -p upgrade-scs
 
 ## Spring Cloud Services v3
-fly -t kirklab set-pipeline -p upgrade-scs3 -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_shortname=scs3 -v product_version="^3\.0\..*$"
+fly -t kirklab set-pipeline -p upgrade-scs3 -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_slug2=p_spring-cloud-services -v product_shortname=scs3 -v product_version="^3\.0\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-scs3
 
 # Kirklab Manual Apply Changes

@@ -85,7 +85,7 @@ resources:
     secret_access_key: ((minio_secret_access_key))
     endpoint: ((minio_endpoint))
     bucket: ((foundation))-pivnet-products
-    regexp: \[((product_slug)),(.*)\].*\.pivotal
+    regexp: \[((product_slug)),(.*)\]((product_slug2))-.*\.pivotal
     disable_ssl: true
 
 - name: ((product_shortname))-stemcell-config
@@ -389,7 +389,7 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/staged-config.yml
       params:
-        PRODUCT_NAME: ((product_slug))
+        PRODUCT_NAME: ((product_slug2))
         ENV_FILE: ((foundation))/env/env.yml
       input_mapping:
         env: interpolated-files
@@ -404,7 +404,7 @@ jobs:
       params:
         ENV_FILE: ((foundation))/env/env.yml
         ERRAND_NAME: register-brokers
-        CONFIG_FILE: ((product_slug)).yml
+        CONFIG_FILE: ((product_slug2)).yml
       on_failure:
         put: notify
         params:
