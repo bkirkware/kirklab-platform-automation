@@ -1,3 +1,6 @@
+## Platform Automation
+fly -t kirklab set-pipeline -p get-pa -c ../pipelines/get-pa.yml
+
 ## Control Ops Manager
 fly -t kirklab set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control -v product_version="^2\.6\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-control-opsman
@@ -43,12 +46,20 @@ fly -t kirklab set-pipeline -p upgrade-redis -c ../pipelines/upgrade-redis.yml -
 fly -t kirklab unpause-pipeline -p upgrade-redis
 
 ## Spring Cloud Data Flow
-fly -t kirklab set-pipeline -p upgrade-scdf -c ../pipelines/upgrade-scdf.yml -v foundation=kirklab -v product_slug=p-dataflow -v product_shortname=scdf -v product_version="^1\.5\..*$"
+fly -t kirklab set-pipeline -p upgrade-scdf -c ../pipelines/upgrade-scdf-credhub.yml -v foundation=kirklab -v product_slug=p-dataflow -v product_shortname=scdf -v product_version="^1\.5\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-scdf
 
-## Spring Cloud Services
+## Credhub Service Broker
+fly -t kirklab set-pipeline -p upgrade-credhub -c ../pipelines/upgrade-scdf-credhub.yml -v foundation=kirklab -v product_slug=credhub-service-broker -v product_shortname=credhub -v product_version="^1\.3\..*$"
+fly -t kirklab unpause-pipeline -p upgrade-credhub
+
+## Spring Cloud Services v2
 fly -t kirklab set-pipeline -p upgrade-scs -c ../pipelines/upgrade-scs.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_shortname=scs -v product_version="^2\.0\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-scs
+
+## Spring Cloud Services v3
+fly -t kirklab set-pipeline -p upgrade-scs3 -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_shortname=scs3 -v product_version="^3\.0\..*$"
+fly -t kirklab unpause-pipeline -p upgrade-scs3
 
 # Kirklab Manual Apply Changes
 fly -t kirklab set-pipeline -p apply-changes -c ../pipelines/apply-changes.yml -v foundation=kirklab
