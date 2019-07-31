@@ -33,9 +33,13 @@ fly -t kirklab unpause-pipeline -p upgrade-pas-srt
 fly -t kirklab set-pipeline -p upgrade-control-pas-srt -c ../pipelines/upgrade-pas-srt.yml -v foundation=kirklab-control -v product_slug=cf -v product_shortname=pas-srt -v product_version="^2\.6\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-control-pas-srt
 
-## Pivotal Container Service
+## Kirklab Pivotal Container Service
 fly -t kirklab set-pipeline -p upgrade-pks -c ../pipelines/upgrade-pks.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.4\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-pks
+
+## Kirklab Control Pivotal Container Service
+fly -t kirklab set-pipeline -p upgrade-control-pks -c ../pipelines/upgrade-pks.yml -v foundation=kirklab-control -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.4\..*$"
+fly -t kirklab unpause-pipeline -p upgrade-control-pks
 
 ## RabbitMQ
 fly -t kirklab set-pipeline -p upgrade-rabbitmq -c ../pipelines/upgrade-rabbitmq.yml -v foundation=kirklab -v product_slug=p-rabbitmq -v product_shortname=rabbitmq -v product_version="^1\.17\..*$"
