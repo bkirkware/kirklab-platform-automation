@@ -66,7 +66,7 @@ fly -t kirklab set-pipeline -p apply-changes -c ../pipelines/apply-changes.yml -
 fly -t kirklab unpause-pipeline -p apply-changes
 
 # Kirklab Control Manual Apply Changes
-fly -t kirklab set-pipeline -p control-apply-changes -c ../pipelines/apply-changes.yml -v foundation=kirklab-control
+fly -t kirklab set-pipeline -p control-apply-changes -c ../pipelines/control-apply-changes.yml -v foundation=kirklab-control
 fly -t kirklab unpause-pipeline -p control-apply-changes
 
 # Kirklab Export Installation
