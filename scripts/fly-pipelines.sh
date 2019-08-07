@@ -46,7 +46,7 @@ fly -t kirklab set-pipeline -p upgrade-rabbitmq -c ../pipelines/upgrade-rabbitmq
 fly -t kirklab unpause-pipeline -p upgrade-rabbitmq
 
 ## Redis
-fly -t kirklab set-pipeline -p upgrade-redis -c ../pipelines/upgrade-redis.yml -v foundation=kirklab -v product_slug=p-redis -v product_shortname=redis -v product_version="^2\.1\..*$"
+fly -t kirklab set-pipeline -p upgrade-redis -c ../pipelines/upgrade-redis.yml -v foundation=kirklab -v product_slug=p-redis -v product_shortname=redis -v product_version="^2\.2\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-redis
 
 ## Spring Cloud Data Flow
@@ -54,7 +54,7 @@ fly -t kirklab set-pipeline -p upgrade-scdf -c ../pipelines/upgrade-scdf-credhub
 fly -t kirklab unpause-pipeline -p upgrade-scdf
 
 ## Credhub Service Broker
-fly -t kirklab set-pipeline -p upgrade-credhub -c ../pipelines/upgrade-scdf-credhub.yml -v foundation=kirklab -v product_slug=credhub-service-broker -v product_shortname=credhub -v product_version="^1\.3\..*$"
+fly -t kirklab set-pipeline -p upgrade-credhub -c ../pipelines/upgrade-scdf-credhub.yml -v foundation=kirklab -v product_slug=credhub-service-broker -v product_shortname=credhub -v product_version="^1\.4\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-credhub
 
 ## Spring Cloud Services v2
