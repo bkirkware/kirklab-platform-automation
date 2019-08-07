@@ -50,7 +50,7 @@ fly -t kirklab set-pipeline -p upgrade-redis -c ../pipelines/upgrade-redis.yml -
 fly -t kirklab unpause-pipeline -p upgrade-redis
 
 ## Spring Cloud Data Flow
-fly -t kirklab set-pipeline -p upgrade-scdf -c ../pipelines/upgrade-scdf-credhub.yml -v foundation=kirklab -v product_slug=p-dataflow -v product_shortname=scdf -v product_version="^1\.5\..*$"
+fly -t kirklab set-pipeline -p upgrade-scdf -c ../pipelines/upgrade-scdf-credhub.yml -v foundation=kirklab -v product_slug=p-dataflow -v product_shortname=scdf -v product_version="^1\.6\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-scdf
 
 ## Credhub Service Broker
