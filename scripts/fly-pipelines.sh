@@ -22,7 +22,7 @@ fly -t kirklab set-pipeline -p upgrade-healthwatch -c ../pipelines/upgrade-healt
 fly -t kirklab unpause-pipeline -p upgrade-healthwatch
 
 ## MySQL
-fly -t kirklab set-pipeline -p upgrade-mysql -c ../pipelines/upgrade-mysql.yml -v foundation=kirklab -v product_slug=pivotal-mysql -v product_shortname=mysql -v product_version="^2\.6\..*$"
+fly -t kirklab set-pipeline -p upgrade-mysql -c ../pipelines/upgrade-mysql.yml -v foundation=kirklab -v product_slug=pivotal-mysql -v product_shortname=mysql -v product_version="^2\.7\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-mysql
 
 ## Pivotal Application Service - Small Runtime
