@@ -1,3 +1,5 @@
+cd ~/work/git/bkirkware/kirklab-platform-automation/scripts
+
 ## Platform Automation
 fly -t kirklab set-pipeline -p get-pa -c ../pipelines/get-pa.yml
 
@@ -10,7 +12,7 @@ fly -t kirklab set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-opsman.yml
 fly -t kirklab unpause-pipeline -p upgrade-opsman
 
 ## Pivotal Cloud Cache
-fly -t kirklab set-pipeline -p upgrade-pcc -c ../pipelines/upgrade-pcc.yml -v foundation=kirklab -v product_slug=p-cloudcache -v product_shortname=pcc -v product_version="^1\.7\..*$"
+fly -t kirklab set-pipeline -p upgrade-pcc -c ../pipelines/upgrade-pcc.yml -v foundation=kirklab -v product_slug=p-cloudcache -v product_shortname=pcc -v product_version="^1\.8\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-pcc
 
 ## Harbor Container Registry
