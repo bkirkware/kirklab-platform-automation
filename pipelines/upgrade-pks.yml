@@ -66,16 +66,16 @@ resources:
     product_slug: ((product_slug))
     product_version: ((product_version))
 
-# - name: ((product_shortname))-stemcell
-#   type: s3
-#   icon: ubuntu
-#   source:
-#     access_key_id: ((minio_access_key_id))
-#     secret_access_key: ((minio_secret_access_key))
-#     endpoint: ((minio_endpoint))
-#     bucket: ((foundation))-pivnet-products
-#     regexp: ((product_shortname))-stemcell/\[stemcells-ubuntu-.*,(.*)\]bosh-stemcell-.*-vsphere.*\.tgz
-#     disable_ssl: true
+- name: ((product_shortname))-stemcell
+  type: s3
+  icon: ubuntu
+  source:
+    access_key_id: ((minio_access_key_id))
+    secret_access_key: ((minio_secret_access_key))
+    endpoint: ((minio_endpoint))
+    bucket: ((foundation))-pivnet-products
+    regexp: ((product_shortname))-stemcell/\[stemcells-ubuntu-.*,(.*)\]bosh-stemcell-.*-vsphere.*\.tgz
+    disable_ssl: true
 
 - name: ((product_shortname))-product
   type: s3
@@ -88,15 +88,15 @@ resources:
     regexp: \[((product_slug)),(.*)\]((product_slug))-.*\.pivotal
     disable_ssl: true
 
-# - name: ((product_shortname))-stemcell-config
-#   type: s3
-#   icon: file-document
-#   source:
-#     access_key_id: ((aws_access_key_id))
-#     secret_access_key: ((aws_secret_access_key))
-#     region_name: ((aws_region_name))
-#     bucket: ((aws_buckets_assign_stemcell_config))
-#     versioned_file: ((foundation))/((product_shortname))/config.yml
+- name: ((product_shortname))-stemcell-config
+  type: s3
+  icon: file-document
+  source:
+    access_key_id: ((aws_access_key_id))
+    secret_access_key: ((aws_secret_access_key))
+    region_name: ((aws_region_name))
+    bucket: ((aws_buckets_assign_stemcell_config))
+    versioned_file: ((foundation))/((product_shortname))/config.yml
 
 - name: lock
   type: pool
@@ -153,7 +153,7 @@ jobs:
       files: configuration
     output_mapping:
       interpolated-files: configuration
-  - task: download-((product_shortname))-product #-and-stemcell
+  - task: download-((product_shortname))-product-and-stemcell
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product.yml
     params:
@@ -162,8 +162,8 @@ jobs:
       config: configuration
     output_mapping: 
       downloaded-product: ((product_shortname))-product
-      # downloaded-stemcell: ((product_shortname))-stemcell
-      # assign-stemcell-config: ((product_shortname))-stemcell-config
+      downloaded-stemcell: ((product_shortname))-stemcell
+      assign-stemcell-config: ((product_shortname))-stemcell-config
     on_failure:
       put: notify
       params:
@@ -173,12 +173,12 @@ jobs:
     - put: ((product_shortname))-product
       params:
         file: ((product_shortname))-product/*.pivotal
-    # - put: ((product_shortname))-stemcell
-    #   params:
-    #     file: ((product_shortname))-stemcell/*.tgz
-    # - put: ((product_shortname))-stemcell-config
-    #   params:
-    #     file: ((product_shortname))-stemcell-config/config.yml
+    - put: ((product_shortname))-stemcell
+      params:
+        file: ((product_shortname))-stemcell/*.tgz
+    - put: ((product_shortname))-stemcell-config
+      params:
+        file: ((product_shortname))-stemcell-config/config.yml
     on_failure:
       put: notify
       params:
@@ -226,7 +226,7 @@ jobs:
       files: configuration
     output_mapping:
       interpolated-files: configuration
-  - task: download-((product_shortname))-product #-and-stemcell
+  - task: download-((product_shortname))-product-and-stemcell
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product-s3.yml
     params:
@@ -235,8 +235,8 @@ jobs:
       config: configuration
     output_mapping: 
       downloaded-product: ((product_shortname))-product
-      # downloaded-stemcell: ((product_shortname))-stemcell
-      # assign-stemcell-config: ((product_shortname))-stemcell-config
+      downloaded-stemcell: ((product_shortname))-stemcell
+      assign-stemcell-config: ((product_shortname))-stemcell-config
     on_failure:
       put: notify
       params:
@@ -257,8 +257,8 @@ jobs:
           passed:
             - fetch-local-((product_shortname))
           trigger: true
-        # - get: ((product_shortname))-stemcell
-        # - get: ((product_shortname))-stemcell-config
+        - get: ((product_shortname))-stemcell
+        - get: ((product_shortname))-stemcell-config
         - get: configuration
     - task: credhub-interpolate
       image: platform-automation-image
@@ -287,33 +287,33 @@ jobs:
         params:
           alert_type: failed
           message: "((foundation)) ((product_shortname)) failed to upload/stage."
-    # - task: upload-((product_shortname))-stemcell
-    #   image: platform-automation-image
-    #   file: platform-automation-tasks/tasks/upload-stemcell.yml
-    #   input_mapping:
-    #     env: configuration
-    #     stemcell: ((product_shortname))-stemcell
-    #   params:
-    #     ENV_FILE: ((foundation))/env/env.yml
-    #     FLOATING_STEMCELL: false
-    #   on_failure:
-    #     put: notify
-    #     params:
-    #       alert_type: failed
-    #       message: "((foundation)) ((product_shortname)) stemcell failed to upload."
-    # - task: assign-((product_shortname))-stemcell
-    #   image: platform-automation-image
-    #   file: platform-automation-tasks/tasks/assign-stemcell.yml
-    #   input_mapping:
-    #     env: configuration
-    #     config: ((product_shortname))-stemcell-config
-    #   params:
-    #     ENV_FILE: ((foundation))/env/env.yml
-    #   on_failure:
-    #     put: notify
-    #     params:
-    #       alert_type: failed
-    #       message: "((foundation)) ((product_shortname)) stemcell failed to assign."
+    - task: upload-((product_shortname))-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/upload-stemcell.yml
+      input_mapping:
+        env: configuration
+        stemcell: ((product_shortname))-stemcell
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        FLOATING_STEMCELL: false
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) ((product_shortname)) stemcell failed to upload."
+    - task: assign-((product_shortname))-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/assign-stemcell.yml
+      input_mapping:
+        env: configuration
+        config: ((product_shortname))-stemcell-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) ((product_shortname)) stemcell failed to assign."
 
   
 - name: apply-product-changes
