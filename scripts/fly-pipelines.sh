@@ -36,7 +36,7 @@ fly -t kirklab unpause-pipeline -p upgrade-pas-srt
 # fly -t kirklab unpause-pipeline -p upgrade-control-pas-srt
 
 ## Kirklab Pivotal Container Service
-fly -t kirklab set-pipeline -p upgrade-pks -c ../pipelines/upgrade-pks.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.5\..*$"
+fly -t kirklab set-pipeline -p upgrade-pks -c ../pipelines/upgrade-pks.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.6\..*$"
 fly -t kirklab unpause-pipeline -p upgrade-pks
 
 ## Kirklab Control Pivotal Container Service
