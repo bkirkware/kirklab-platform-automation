@@ -9,6 +9,8 @@ groups:
     - unlock-kirklab
 - name: ad-hoc-jobs
   jobs: 
+    - force-lock-control
+    - force-lock-kirklab
     - force-unlock-control
     - force-unlock-kirklab
 
@@ -178,6 +180,7 @@ jobs:
     trigger: true
     passed:
       - unlock-control
+  - get: lock-kirklab
   - put: lock-kirklab
     params:
       release: lock-kirklab
@@ -192,6 +195,20 @@ jobs:
         alert_type: success
         text: "((foundation)) apply changes succeeded."
 
+
+- name: force-lock-kirklab
+  serial: true
+  plan:
+  - get: lock-kirklab
+  - put: lock-kirklab
+    params: {acquire: true}
+
+- name: force-lock-control
+  serial: true
+  plan:
+  - get: lock-control
+  - put: lock-control
+    params: {acquire: true}
 
 - name: force-unlock-control
   serial: true
