@@ -40,16 +40,16 @@ resources:
   type: slack-alert
   icon: slack
   source:
-    url: ((slack_webhook))
+    url: ((slack-webhook))
 
 - name: platform-automation-tasks
   type: s3
   icon: file
   source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_platform_automation))
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
+    bucket: ((minio-buckets-platform-automation))
     regexp: .*tasks-(.*).zip
     disable_ssl: true
 
@@ -57,10 +57,10 @@ resources:
   type: s3
   icon: file
   source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_platform_automation))
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
+    bucket: ((minio-buckets-platform-automation))
     regexp: .*image-(.*).tgz
     disable_ssl: true
 
@@ -76,9 +76,9 @@ resources:
   type: s3
   icon: ubuntu
   source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
     bucket: ((foundation))-pivnet-products
     regexp: ((product_shortname))-stemcell/\[stemcells-ubuntu-.*,(.*)\]bosh-stemcell-.*-vsphere.*\.tgz
     disable_ssl: true
@@ -87,9 +87,9 @@ resources:
   type: s3
   icon: file
   source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
     bucket: ((foundation))-pivnet-products
     regexp: \[((product_slug)),(.*)\]srt-.*\.pivotal
     disable_ssl: true
@@ -98,10 +98,10 @@ resources:
   type: s3
   icon: file-document
   source:
-    access_key_id: ((aws_access_key_id))
-    secret_access_key: ((aws_secret_access_key))
-    region_name: ((aws_region_name))
-    bucket: ((aws_buckets_assign_stemcell_config))
+    access_key_id: ((aws-access-key-id))
+    secret_access_key: ((aws-secret-access-key))
+    region_name: ((aws-region-name))
+    bucket: ((aws-buckets-assign-stemcell-config))
     versioned_file: ((foundation))/((product_shortname))/config.yml
 
 - name: lock
@@ -110,7 +110,7 @@ resources:
   source:
     branch: master
     uri: git@github.com:bkirkware/kirklab-locks
-    private_key: ((platform-automation-pipelines-kirklab-locks-key.private_key))
+    private_key: ((platform-automation-pipelines-kirklab-locks-key-private-key))
     pool: ((foundation))
     retry_delay: 1m
 
@@ -119,7 +119,7 @@ resources:
   icon: github-circle
   source:
     uri: ((platform-automation-pipelines-kirklab-env))
-    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly.private_key))
+    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly-private-key))
     branch: master
 
 jobs:
@@ -149,10 +149,10 @@ jobs:
     image: platform-automation-image
     file: platform-automation-tasks/tasks/credhub-interpolate.yml
     params:
-      CREDHUB_CLIENT: ((credhub_client))
-      CREDHUB_SECRET: ((credhub_secret))
-      CREDHUB_SERVER: ((credhub_server))
-      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      CREDHUB_CLIENT: ((credhub-client))
+      CREDHUB_SECRET: ((credhub-secret))
+      CREDHUB_SERVER: ((credhub-server))
+      CREDHUB_CA_CERT: ((credhub-ca-cert))
       PREFIX: /((foundation))
       INTERPOLATION_PATH: "((foundation))/download-product-configs"
     input_mapping:
@@ -222,10 +222,10 @@ jobs:
     image: platform-automation-image
     file: platform-automation-tasks/tasks/credhub-interpolate.yml
     params:
-      CREDHUB_CLIENT: ((credhub_client))
-      CREDHUB_SECRET: ((credhub_secret))
-      CREDHUB_SERVER: ((credhub_server))
-      CREDHUB_CA_CERT: ((credhub_ca_cert))
+      CREDHUB_CLIENT: ((credhub-client))
+      CREDHUB_SECRET: ((credhub-secret))
+      CREDHUB_SERVER: ((credhub-server))
+      CREDHUB_CA_CERT: ((credhub-ca-cert))
       PREFIX: /((foundation))
       INTERPOLATION_PATH: "((foundation))/download-product-configs"
     input_mapping:
@@ -269,10 +269,10 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
         PREFIX: /((foundation))
         INTERPOLATION_PATH: "((foundation))"
       input_mapping:
@@ -339,10 +339,10 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
         PREFIX: /((foundation))
         INTERPOLATION_PATH: "((foundation))"
       input_mapping:
@@ -381,10 +381,10 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
         PREFIX: /((foundation))
         INTERPOLATION_PATH: "((foundation))"
       input_mapping:
@@ -435,10 +435,10 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
         PREFIX: /((foundation))
         INTERPOLATION_PATH: "((foundation))"
       input_mapping:
@@ -489,10 +489,10 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
         PREFIX: /((foundation))
         INTERPOLATION_PATH: "((foundation))"
       input_mapping:
@@ -543,10 +543,10 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
         PREFIX: /((foundation))
         INTERPOLATION_PATH: "((foundation))"
       input_mapping:
@@ -597,10 +597,10 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
         PREFIX: /((foundation))
         INTERPOLATION_PATH: "((foundation))"
       input_mapping:
@@ -651,10 +651,10 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
         PREFIX: /((foundation))
         INTERPOLATION_PATH: "((foundation))"
       input_mapping:
@@ -705,10 +705,10 @@ jobs:
       image: platform-automation-image
       file: platform-automation-tasks/tasks/credhub-interpolate.yml
       params:
-        CREDHUB_CLIENT: ((credhub_client))
-        CREDHUB_SECRET: ((credhub_secret))
-        CREDHUB_SERVER: ((credhub_server))
-        CREDHUB_CA_CERT: ((credhub_ca_cert))
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
         PREFIX: /((foundation))
         INTERPOLATION_PATH: "((foundation))"
       input_mapping:

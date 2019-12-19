@@ -16,7 +16,7 @@ resources:
   type: slack-alert
   icon: slack
   source:
-    url: ((slack_webhook))
+    url: ((slack-webhook))
 
 - name: platform-automation-pivnet
   type: pivnet
@@ -31,10 +31,10 @@ resources:
   type: s3
   icon: file-upload
   source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_platform_automation))
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
+    bucket: ((minio-buckets-platform-automation))
     regexp: platform-automation-tasks-(.*).zip
     disable_ssl: true
 
@@ -42,10 +42,10 @@ resources:
   type: s3
   icon: file-upload
   source:
-    access_key_id: ((minio_access_key_id))
-    secret_access_key: ((minio_secret_access_key))
-    endpoint: ((minio_endpoint))
-    bucket: ((minio_buckets_platform_automation))
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
+    bucket: ((minio-buckets-platform-automation))
     regexp: platform-automation-image-(.*).tgz
     disable_ssl: true
 
