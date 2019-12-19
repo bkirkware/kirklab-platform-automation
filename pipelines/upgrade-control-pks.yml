@@ -1,0 +1,416 @@
+---
+groups:
+- name: deployment-pipeline
+  jobs: 
+    - fetch-pivnet-((product_shortname))
+    - lock-control
+    - lock-kirklab
+    - fetch-local-((product_shortname))
+    - upload-and-stage-((product_shortname))
+    - apply-product-changes
+    - unlock-control
+    - unlock-kirklab
+- name: ad-hoc-jobs
+  jobs: 
+    - force-unlock-control
+    - force-unlock-kirklab
+
+
+
+resource_types:
+
+- name: slack-alert
+  type: docker-image
+  source:
+    repository: arbourd/concourse-slack-alert-resource
+
+- name: pivnet
+  type: docker-image
+  source:
+    repository: pivotalcf/pivnet-resource
+    tags: latest-final
+
+resources:
+
+- name: lock-kirklab
+  type: pool
+  icon: lock
+  source:
+    branch: master
+    uri: git@github.com:bkirkware/kirklab-locks
+    private_key: ((platform-automation-pipelines-kirklab-locks-key-private-key))
+    pool: kirklab
+    retry_delay: 1m
+
+- name: lock-control
+  type: pool
+  icon: lock
+  source:
+    branch: master
+    uri: git@github.com:bkirkware/kirklab-locks
+    private_key: ((platform-automation-pipelines-kirklab-locks-key-private-key))
+    pool: ((foundation))
+    retry_delay: 1m
+
+- name: notify
+  type: slack-alert
+  icon: slack
+  source:
+    url: ((slack-webhook))
+
+- name: platform-automation-tasks
+  type: s3
+  icon: file
+  source:
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
+    bucket: ((minio-buckets-platform-automation))
+    regexp: .*tasks-(.*).zip
+    disable_ssl: true
+
+- name: platform-automation-image
+  type: s3
+  icon: file
+  source:
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
+    bucket: ((minio-buckets-platform-automation))
+    regexp: .*image-(.*).tgz
+    disable_ssl: true
+
+- name: pivnet-((product_shortname))
+  type: pivnet
+  icon: file-powerpoint
+  source:
+    api_token: ((pivnet-refresh-token))
+    product_slug: ((product_slug))
+    product_version: ((product_version))
+
+- name: ((product_shortname))-stemcell
+  type: s3
+  icon: ubuntu
+  source:
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
+    bucket: ((foundation))-pivnet-products
+    regexp: ((product_shortname))-stemcell/\[stemcells-ubuntu-.*,(.*)\]bosh-stemcell-.*-vsphere.*\.tgz
+    disable_ssl: true
+
+- name: ((product_shortname))-product
+  type: s3
+  icon: file
+  source:
+    access_key_id: ((minio-access-key-id))
+    secret_access_key: ((minio-secret-access-key))
+    endpoint: ((minio-endpoint))
+    bucket: ((foundation))-pivnet-products
+    regexp: \[((product_slug)),(.*)\]((product_slug))-.*\.pivotal
+    disable_ssl: true
+
+- name: ((product_shortname))-stemcell-config
+  type: s3
+  icon: file-document
+  source:
+    access_key_id: ((aws-access-key-id))
+    secret_access_key: ((aws-secret-access-key))
+    region_name: ((aws-region-name))
+    bucket: ((aws-buckets-assign-stemcell-config))
+    versioned_file: ((foundation))/((product_shortname))/config.yml
+
+- name: configuration
+  type: git
+  icon: github-circle
+  source:
+    uri: ((platform-automation-pipelines-kirklab-env))
+    private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly-private-key))
+    branch: master
+
+jobs:
+
+- name: fetch-pivnet-((product_shortname))
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: configuration
+    - get: pivnet-((product_shortname))
+      trigger: true
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub-client))
+      CREDHUB_SECRET: ((credhub-secret))
+      CREDHUB_SERVER: ((credhub-server))
+      CREDHUB_CA_CERT: ((credhub-ca-cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))/download-product-configs"
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: configuration
+  - task: download-((product_shortname))-product-and-stemcell
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/download-product.yml
+    params:
+      CONFIG_FILE: ((foundation))/download-product-configs/((product_shortname)).yml
+    input_mapping:
+      config: configuration
+    output_mapping: 
+      downloaded-product: ((product_shortname))-product
+      downloaded-stemcell: ((product_shortname))-stemcell
+      assign-stemcell-config: ((product_shortname))-stemcell-config
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) ((product_shortname)) failed to download."
+  - in_parallel:
+    - put: ((product_shortname))-product
+      params:
+        file: ((product_shortname))-product/*.pivotal
+    - put: ((product_shortname))-stemcell
+      params:
+        file: ((product_shortname))-stemcell/*.tgz
+    - put: ((product_shortname))-stemcell-config
+      params:
+        file: ((product_shortname))-stemcell-config/config.yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) ((product_shortname)) failed to upload."
+
+- name: lock-kirklab
+  plan:
+  - in_parallel:
+    - put: lock-kirklab
+      params: {acquire: true}
+    - get: pks-product
+      passed: [ fetch-pivnet-((product_shortname)) ]
+      trigger: true
+
+- name: lock-control
+  plan:
+  - in_parallel:
+    - put: lock-control
+      params: {acquire: true}
+    - get: pks-product
+      passed: [ lock-kirklab ]
+      trigger: true
+
+- name: fetch-local-((product_shortname))
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: configuration
+    - get: ((product_shortname))-product
+      passed: [ lock-control ]
+      trigger: true
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub-client))
+      CREDHUB_SECRET: ((credhub-secret))
+      CREDHUB_SERVER: ((credhub-server))
+      CREDHUB_CA_CERT: ((credhub-ca-cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))/download-product-configs"
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: configuration
+  - task: download-((product_shortname))-product-and-stemcell
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/download-product-s3.yml
+    params:
+      CONFIG_FILE: ((foundation))/download-product-configs/((product_shortname)).yml
+    input_mapping:
+      config: configuration
+    output_mapping: 
+      downloaded-product: ((product_shortname))-product
+      downloaded-stemcell: ((product_shortname))-stemcell
+      assign-stemcell-config: ((product_shortname))-stemcell-config
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) ((product_shortname)) failed to download."
+      
+
+- name: upload-and-stage-((product_shortname))
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: ((product_shortname))-product
+          passed:
+            - fetch-local-((product_shortname))
+          trigger: true
+        - get: ((product_shortname))-stemcell
+        - get: ((product_shortname))-stemcell-config
+        - get: configuration
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: upload-and-stage-product
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/upload-and-stage-product.yml
+      input_mapping:
+        product: ((product_shortname))-product
+        env: configuration
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) ((product_shortname)) failed to upload/stage."
+    - task: upload-((product_shortname))-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/upload-stemcell.yml
+      input_mapping:
+        env: configuration
+        stemcell: ((product_shortname))-stemcell
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        FLOATING_STEMCELL: false
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) ((product_shortname)) stemcell failed to upload."
+    - task: assign-((product_shortname))-stemcell
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/assign-stemcell.yml
+      input_mapping:
+        env: configuration
+        config: ((product_shortname))-stemcell-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) ((product_shortname)) stemcell failed to assign."
+
+  
+- name: apply-product-changes
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: ((product_shortname))-product
+          passed:
+            - upload-and-stage-((product_shortname))
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: apply-product-changes
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/apply-changes.yml
+      input_mapping:
+        env: configuration
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) apply changes failed."
+
+- name: unlock-control
+  serial: true
+  plan:
+  - get: pks-product
+    trigger: true
+    passed:
+      - apply-product-changes
+  - get: lock-control
+  - put: lock-control
+    params:
+      release: lock-control
+
+
+- name: unlock-kirklab
+  serial: true
+  plan:
+  - get: pks-product
+    trigger: true
+    passed:
+      - unlock-control
+  - get: lock-kirklab
+  - put: lock-kirklab
+    params:
+      release: lock-kirklab
+
+- name: force-unlock-control
+  serial: true
+  plan:
+  - get: lock-control
+  - put: lock-control
+    params:
+      release: lock-control
+
+- name: force-unlock-kirklab
+  serial: true
+  plan:
+  - get: lock-kirklab
+  - put: lock-kirklab
+    params:
+      release: lock-kirklab
+  on_failure:
+    put: notify
+    params:
+      alert_type: failed
+      message: "kirklab failed to unlock."
+  on_success:
+    put: notify
+    params:
+      alert_type: success
+      text: "((foundation)) ((product_shortname)) upgrade succeeded."

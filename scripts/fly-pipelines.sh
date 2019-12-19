@@ -13,7 +13,7 @@ fly -t kirklab-control set-pipeline -p upgrade-harbor -c ../pipelines/upgrade-ha
 fly -t kirklab-control set-pipeline -p upgrade-mysql -c ../pipelines/upgrade-mysql.yml -v foundation=kirklab -v product_slug=pivotal-mysql -v product_shortname=mysql -v product_version="^2\.7\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-pas-srt -c ../pipelines/upgrade-pas-srt.yml -v foundation=kirklab -v product_slug=cf -v product_shortname=pas-srt -v product_version="^2\.6\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-pks -c ../pipelines/upgrade-pks.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.6\..*$"
-fly -t kirklab-control set-pipeline -p upgrade-control-pks -c ../pipelines/upgrade-pks.yml -v foundation=kirklab-control -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.6\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-control-pks -c ../pipelines/upgrade-control-pks.yml -v foundation=kirklab-control -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.6\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-rabbitmq -c ../pipelines/upgrade-rabbitmq.yml -v foundation=kirklab -v product_slug=p-rabbitmq -v product_shortname=rabbitmq -v product_version="^1\.18\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-redis -c ../pipelines/upgrade-redis.yml -v foundation=kirklab -v product_slug=p-redis -v product_shortname=redis -v product_version="^2\.2\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-scdf -c ../pipelines/upgrade-scdf-credhub.yml -v foundation=kirklab -v product_slug=p-dataflow -v product_shortname=scdf -v product_version="^1\.6\..*$"
