@@ -20,6 +20,7 @@ fly -t kirklab-control set-pipeline -p upgrade-scdf -c ../pipelines/upgrade-scdf
 fly -t kirklab-control set-pipeline -p upgrade-credhub -c ../pipelines/upgrade-scdf-credhub.yml -v foundation=kirklab -v product_slug=credhub-service-broker -v product_shortname=credhub -v product_version="^1\.4\..*$"
 # fly -t kirklab-control set-pipeline -p upgrade-scs -c ../pipelines/upgrade-scs.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_shortname=scs -v product_version="^2\.0\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-scs3 -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_slug2=p_spring-cloud-services -v product_shortname=scs3 -v product_version="^3\.1\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-ncp -c ../pipelines/upgrade-ncp.yml -v foundation=kirklab -v product_slug=VMware-NSX-T -v product_shortname=ncp -v product_version="^2\.5\..*$"
 
 # Apply Changes
 fly -t kirklab-control set-pipeline -p apply-changes -c ../pipelines/apply-changes.yml -v foundation=kirklab
@@ -52,6 +53,7 @@ fly -t kirklab-control unpause-pipeline -p upgrade-scdf
 fly -t kirklab-control unpause-pipeline -p upgrade-credhub
 # fly -t kirklab-control unpause-pipeline -p upgrade-scs
 fly -t kirklab-control unpause-pipeline -p upgrade-scs3
+fly -t kirklab-control unpause-pipeline -p upgrade-ncp
 fly -t kirklab-control unpause-pipeline -p apply-changes
 fly -t kirklab-control unpause-pipeline -p control-apply-changes
 fly -t kirklab-control unpause-pipeline -p export-inst
