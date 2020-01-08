@@ -7,6 +7,7 @@ groups:
     - fetch-local-((product_shortname))
     - upload-and-stage-((product_shortname))
     - apply-product-changes
+    - pks-upgrade-all-service-instances
     - unlock-((foundation))
 - name: ad-hoc-jobs
   jobs: 
@@ -300,13 +301,66 @@ jobs:
           alert_type: failed
           message: "((foundation)) apply changes failed."
   
+- name: pks-upgrade-all-service-instances
+  plan:
+  - in_parallel:
+      - get: platform-automation-image
+        params:
+          unpack: true
+      - get: platform-automation-tasks
+        params:
+          unpack: true
+      - get: configuration
+      - get: ((product_shortname))-product
+        passed:
+          - apply-product-changes
+        trigger: true
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub-client))
+      CREDHUB_SECRET: ((credhub-secret))
+      CREDHUB_SERVER: ((credhub-server))
+      CREDHUB_CA_CERT: ((credhub-ca-cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))"
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: interpolated-files
+  - task: staged-config
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/staged-config.yml
+    params:
+      PRODUCT_NAME: ((pks_product_slug))
+      ENV_FILE: ((foundation))/env/env.yml
+    input_mapping:
+      env: interpolated-files
+    output_mapping:
+      generated-config: generated-config
+  - task: run-errand
+    image: platform-automation-image
+    file: configuration/custom-tasks/run-errand.yml
+    input_mapping:
+      env: interpolated-files
+      config: generated-config
+    params:
+      ENV_FILE: ((foundation))/env/env.yml
+      ERRAND_NAME: upgrade-all-service-instances
+      CONFIG_FILE: ((pks_product_slug)).yml
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) ((product_shortname)) errand failed."
 
 - name: unlock-((foundation))
   serial: true
   plan:
   - get: ((product_shortname))-product
     passed:
-      - apply-product-changes
+      - pks-upgrade-all-service-instances
     trigger: true
   - get: lock
   - put: lock

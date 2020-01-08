@@ -413,4 +413,4 @@ jobs:
     put: notify
     params:
       alert_type: success
-      text: "((foundation)) ((product_shortname)) upgrade succeeded."
+      text: "((foundation)) ((product_shortname)) upgrade succeeded. Please remember to run upgrade-all-service-instances manually!"

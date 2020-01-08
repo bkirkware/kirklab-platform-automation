@@ -5,7 +5,7 @@ fly -t kirklab-control set-pipeline -p get-pa -c ../pipelines/get-pa.yml
 
 ## Ops Managers
 fly -t kirklab-control set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control -v product_version="^2\.7\..*$"
-fly -t kirklab-control set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-opsman.yml -v foundation=kirklab -v product_version="^2\.6\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-opsman.yml -v foundation=kirklab -v product_version="^2\.7\..*$"
 
 fly -t kirklab-control set-pipeline -p upgrade-pcc -c ../pipelines/upgrade-pcc.yml -v foundation=kirklab -v product_slug=p-cloudcache -v product_shortname=pcc -v product_version="^1\.10\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-harbor -c ../pipelines/upgrade-harbor.yml -v foundation=kirklab -v product_slug=harbor-container-registry -v product_shortname=harbor -v product_version="^1\.10\..*$"
@@ -20,7 +20,7 @@ fly -t kirklab-control set-pipeline -p upgrade-scdf -c ../pipelines/upgrade-scdf
 fly -t kirklab-control set-pipeline -p upgrade-credhub -c ../pipelines/upgrade-scdf-credhub.yml -v foundation=kirklab -v product_slug=credhub-service-broker -v product_shortname=credhub -v product_version="^1\.4\..*$"
 # fly -t kirklab-control set-pipeline -p upgrade-scs -c ../pipelines/upgrade-scs.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_shortname=scs -v product_version="^2\.0\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-scs3 -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_slug2=p_spring-cloud-services -v product_shortname=scs3 -v product_version="^3\.1\..*$"
-fly -t kirklab-control set-pipeline -p upgrade-ncp -c ../pipelines/upgrade-ncp.yml -v foundation=kirklab -v product_slug=VMware-NSX-T -v product_shortname=ncp -v product_version="^2\.5\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-ncp -c ../pipelines/upgrade-ncp.yml -v foundation=kirklab -v product_slug=VMware-NSX-T -v product_shortname=ncp -v pks_product_slug=pivotal-container-service -v product_version="^2\.5\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-scg -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p_spring-cloud-gateway-service -v product_slug2=p_spring-cloud-gateway-service -v product_shortname=scg -v product_version="^1\.0\..*$"
 
 # Apply Changes
