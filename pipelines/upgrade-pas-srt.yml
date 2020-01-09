@@ -401,21 +401,22 @@ jobs:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: push-usage-service
-        CONFIG_FILE: ((product_slug)).yml
-      on_failure:
-        put: notify
+    - try:
+        task: run-errand
+        image: platform-automation-image
+        file: configuration/custom-tasks/run-errand.yml
+        input_mapping:
+          env: interpolated-files
+          config: generated-config
         params:
-          alert_type: failed
-          message: "((foundation)) ((product_shortname)) errand failed."
+          ENV_FILE: ((foundation))/env/env.yml
+          ERRAND_NAME: push-usage-service
+          CONFIG_FILE: ((product_slug)).yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: started
+            message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: push-apps-manager
   plan:
@@ -455,21 +456,22 @@ jobs:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: push-apps-manager
-        CONFIG_FILE: ((product_slug)).yml
-      on_failure:
-        put: notify
+    - try:
+        task: run-errand
+        image: platform-automation-image
+        file: configuration/custom-tasks/run-errand.yml
+        input_mapping:
+          env: interpolated-files
+          config: generated-config
         params:
-          alert_type: failed
-          message: "((foundation)) ((product_shortname)) errand failed."
+          ENV_FILE: ((foundation))/env/env.yml
+          ERRAND_NAME: push-apps-manager
+          CONFIG_FILE: ((product_slug)).yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: deploy-notifications
   plan:
@@ -523,7 +525,7 @@ jobs:
         put: notify
         params:
           alert_type: failed
-          message: "((foundation)) ((product_shortname)) errand failed."
+          message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: deploy-notifications-ui
   plan:
@@ -563,21 +565,22 @@ jobs:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: deploy-notifications-ui
-        CONFIG_FILE: ((product_slug)).yml
-      on_failure:
-        put: notify
+    - try:
+        task: run-errand
+        image: platform-automation-image
+        file: configuration/custom-tasks/run-errand.yml
+        input_mapping:
+          env: interpolated-files
+          config: generated-config
         params:
-          alert_type: failed
-          message: "((foundation)) ((product_shortname)) errand failed."
+          ENV_FILE: ((foundation))/env/env.yml
+          ERRAND_NAME: deploy-notifications-ui
+          CONFIG_FILE: ((product_slug)).yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues"
   
 - name: deploy-autoscaler
   plan:
@@ -617,21 +620,22 @@ jobs:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: deploy-autoscaler
-        CONFIG_FILE: ((product_slug)).yml
-      on_failure:
-        put: notify
+    - try:
+        task: run-errand
+        image: platform-automation-image
+        file: configuration/custom-tasks/run-errand.yml
+        input_mapping:
+          env: interpolated-files
+          config: generated-config
         params:
-          alert_type: failed
-          message: "((foundation)) ((product_shortname)) errand failed."
+          ENV_FILE: ((foundation))/env/env.yml
+          ERRAND_NAME: deploy-autoscaler
+          CONFIG_FILE: ((product_slug)).yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: nfsbrokerpush
   plan:
@@ -671,21 +675,22 @@ jobs:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: nfsbrokerpush
-        CONFIG_FILE: ((product_slug)).yml
-      on_failure:
-        put: notify
+    - try:
+        task: run-errand
+        image: platform-automation-image
+        file: configuration/custom-tasks/run-errand.yml
+        input_mapping:
+          env: interpolated-files
+          config: generated-config
         params:
-          alert_type: failed
-          message: "((foundation)) ((product_shortname)) errand failed."
+          ENV_FILE: ((foundation))/env/env.yml
+          ERRAND_NAME: nfsbrokerpush
+          CONFIG_FILE: ((product_slug)).yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: smbbrokerpush
   plan:
@@ -725,21 +730,22 @@ jobs:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: smbbrokerpush
-        CONFIG_FILE: ((product_slug)).yml
-      on_failure:
-        put: notify
+    - try:
+        task: run-errand
+        image: platform-automation-image
+        file: configuration/custom-tasks/run-errand.yml
+        input_mapping:
+          env: interpolated-files
+          config: generated-config
         params:
-          alert_type: failed
-          message: "((foundation)) ((product_shortname)) errand failed."
+          ENV_FILE: ((foundation))/env/env.yml
+          ERRAND_NAME: smbbrokerpush
+          CONFIG_FILE: ((product_slug)).yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: failed
+            message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
 
 - name: unlock-((foundation))
   serial: true
