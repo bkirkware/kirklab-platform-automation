@@ -9,7 +9,6 @@ fly -t kirklab-control set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-op
 
 fly -t kirklab-control set-pipeline -p upgrade-pcc -c ../pipelines/upgrade-pcc.yml -v foundation=kirklab -v product_slug=p-cloudcache -v product_shortname=pcc -v product_version="^1\.10\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-harbor -c ../pipelines/upgrade-harbor.yml -v foundation=kirklab -v product_slug=harbor-container-registry -v product_shortname=harbor -v product_version="^1\.10\..*$"
-# fly -t kirklab-control set-pipeline -p upgrade-healthwatch -c ../pipelines/upgrade-healthwatch.yml -v foundation=kirklab -v product_slug=p-healthwatch -v product_shortname=healthwatch -v product_version="^1\.6\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-mysql -c ../pipelines/upgrade-mysql.yml -v foundation=kirklab -v product_slug=pivotal-mysql -v product_shortname=mysql -v product_version="^2\.7\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-pas-srt -c ../pipelines/upgrade-pas-srt.yml -v foundation=kirklab -v product_slug=cf -v product_shortname=pas-srt -v product_version="^2\.7\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-pks -c ../pipelines/upgrade-pks.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.6\..*$"
@@ -22,6 +21,9 @@ fly -t kirklab-control set-pipeline -p upgrade-scs -c ../pipelines/upgrade-scs.y
 fly -t kirklab-control set-pipeline -p upgrade-scs3 -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_slug2=p_spring-cloud-services -v product_shortname=scs3 -v product_version="^3\.1\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-ncp -c ../pipelines/upgrade-ncp.yml -v foundation=kirklab -v product_slug=VMware-NSX-T -v product_shortname=ncp -v pks_product_slug=pivotal-container-service -v product_version="^2\.5\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-scg -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p_spring-cloud-gateway-service -v product_slug2=p_spring-cloud-gateway-service -v product_shortname=scg -v product_version="^1\.0\..*$"
+
+# fly -t kirklab-control set-pipeline -p upgrade-healthwatch -c ../pipelines/upgrade-healthwatch.yml -v foundation=kirklab -v product_slug=p-healthwatch -v product_shortname=healthwatch -v product_version="^1\.6\..*$"
+
 
 # Apply Changes
 fly -t kirklab-control set-pipeline -p apply-changes -c ../pipelines/apply-changes.yml -v foundation=kirklab
