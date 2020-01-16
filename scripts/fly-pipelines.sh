@@ -21,8 +21,9 @@ fly -t kirklab-control set-pipeline -p upgrade-scs -c ../pipelines/upgrade-scs.y
 fly -t kirklab-control set-pipeline -p upgrade-scs3 -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_slug2=p_spring-cloud-services -v product_shortname=scs3 -v product_version="^3\.1\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-ncp -c ../pipelines/upgrade-ncp.yml -v foundation=kirklab -v product_slug=VMware-NSX-T -v product_shortname=ncp -v pks_product_slug=pivotal-container-service -v product_version="^2\.5\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-scg -c ../pipelines/upgrade-scs3.yml -v foundation=kirklab -v product_slug=p_spring-cloud-gateway-service -v product_slug2=p_spring-cloud-gateway-service -v product_shortname=scg -v product_version="^1\.0\..*$"
-
-# fly -t kirklab-control set-pipeline -p upgrade-healthwatch -c ../pipelines/upgrade-healthwatch.yml -v foundation=kirklab -v product_slug=p-healthwatch -v product_shortname=healthwatch -v product_version="^1\.6\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-sso -c ../pipelines/upgrade-sso.yml -v foundation=kirklab -v product_slug=Pivotal_Single_Sign-On_Service -v product_shortname=sso -v product_version="^1\.11\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-healthwatch -c ../pipelines/upgrade-healthwatch-metrics.yml -v foundation=kirklab -v product_slug=p-healthwatch -v product_shortname=healthwatch -v product_version="^1\.8\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-metrics -c ../pipelines/upgrade-healthwatch-metrics.yml -v foundation=kirklab -v product_slug=apm -v product_shortname=metrics -v product_version="^1\.6\..*$"
 
 
 # Apply Changes
@@ -43,7 +44,8 @@ fly -t kirklab-control set-pipeline -p control-export-inst -c ../pipelines/expor
 fly -t kirklab-control unpause-pipeline -p get-pa
 fly -t kirklab-control unpause-pipeline -p upgrade-control-opsman
 fly -t kirklab-control unpause-pipeline -p upgrade-opsman
-# fly -t kirklab-control unpause-pipeline -p upgrade-healthwatch
+fly -t kirklab-control unpause-pipeline -p upgrade-healthwatch
+fly -t kirklab-control unpause-pipeline -p upgrade-metrics
 fly -t kirklab-control unpause-pipeline -p upgrade-pcc
 fly -t kirklab-control unpause-pipeline -p upgrade-harbor
 fly -t kirklab-control unpause-pipeline -p upgrade-mysql
@@ -54,7 +56,7 @@ fly -t kirklab-control unpause-pipeline -p upgrade-rabbitmq
 fly -t kirklab-control unpause-pipeline -p upgrade-redis
 fly -t kirklab-control unpause-pipeline -p upgrade-scdf
 fly -t kirklab-control unpause-pipeline -p upgrade-credhub
-# fly -t kirklab-control unpause-pipeline -p upgrade-scs
+fly -t kirklab-control unpause-pipeline -p upgrade-scs
 fly -t kirklab-control unpause-pipeline -p upgrade-scs3
 fly -t kirklab-control unpause-pipeline -p upgrade-ncp
 fly -t kirklab-control unpause-pipeline -p upgrade-scg
