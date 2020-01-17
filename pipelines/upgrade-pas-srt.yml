@@ -470,7 +470,7 @@ jobs:
         on_failure:
           put: notify
           params:
-            alert_type: failed
+            alert_type: started
             message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: deploy-notifications
@@ -524,7 +524,7 @@ jobs:
       on_failure:
         put: notify
         params:
-          alert_type: failed
+          alert_type: started
           message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: deploy-notifications-ui
@@ -579,7 +579,7 @@ jobs:
         on_failure:
           put: notify
           params:
-            alert_type: failed
+            alert_type: started
             message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues"
   
 - name: deploy-autoscaler
@@ -634,7 +634,7 @@ jobs:
         on_failure:
           put: notify
           params:
-            alert_type: failed
+            alert_type: started
             message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: nfsbrokerpush
@@ -689,7 +689,7 @@ jobs:
         on_failure:
           put: notify
           params:
-            alert_type: failed
+            alert_type: started
             message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: smbbrokerpush
@@ -744,7 +744,7 @@ jobs:
         on_failure:
           put: notify
           params:
-            alert_type: failed
+            alert_type: started
             message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
 
 - name: unlock-((foundation))
