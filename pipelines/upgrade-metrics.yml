@@ -398,21 +398,22 @@ jobs:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: push-apps
-        CONFIG_FILE: ((product_slug2)).yml
-      on_failure:
-        put: notify
+    - try: 
+        task: run-errand
+        image: platform-automation-image
+        file: configuration/custom-tasks/run-errand.yml
+        input_mapping:
+          env: interpolated-files
+          config: generated-config
         params:
-          alert_type: failed
-          message: "((foundation)) ((product_shortname)) errand failed."
+          ENV_FILE: ((foundation))/env/env.yml
+          ERRAND_NAME: push-apps
+          CONFIG_FILE: ((product_slug2)).yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: started
+            message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
 
 - name: unlock-((foundation))
   serial: true
@@ -485,21 +486,22 @@ jobs:
       env: interpolated-files
     output_mapping:
       generated-config: generated-config
-  - task: run-errand
-    image: platform-automation-image
-    file: configuration/custom-tasks/run-errand.yml
-    input_mapping:
-      env: interpolated-files
-      config: generated-config
-    params:
-      ENV_FILE: ((foundation))/env/env.yml
-      ERRAND_NAME: push-apps
-      CONFIG_FILE: ((product_slug2)).yml
-    on_failure:
-      put: notify
+  - try: 
+      task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errand.yml
+      input_mapping:
+        env: interpolated-files
+        config: generated-config
       params:
-        alert_type: failed
-        message: "((foundation)) ((product_shortname)) errand failed."
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: push-apps
+        CONFIG_FILE: ((product_slug2)).yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: started
+          message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
 
 - name: errand-unlock-((foundation))
   serial: true
