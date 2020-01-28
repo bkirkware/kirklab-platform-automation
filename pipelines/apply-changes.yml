@@ -1,14 +1,24 @@
 ---
 groups:
-- name: deployment-pipeline
-  jobs: 
-    - lock-((foundation))
-    - apply-product-changes
-    - unlock-((foundation))
-- name: ad-hoc-jobs
-  jobs: 
-    - force-lock
-    - force-unlock
+  - name: basic-apply
+    jobs: 
+      - lock-((foundation))
+      - apply-product-changes
+      - unlock-((foundation))
+  - name: apply-with-all-service-instances
+    jobs: 
+      - errand-lock-((foundation))
+      - errand-apply-product-changes
+      - upgrade-all-rabbitmq-instances
+      - upgrade-all-pcc-instances
+      - upgrade-all-redis-instances
+      - upgrade-all-pks-instances
+      - upgrade-all-mysql-instances
+      - errand-unlock-((foundation))
+  - name: ad-hoc-jobs
+    jobs: 
+      - force-lock
+      - force-unlock
 
 
 
@@ -101,7 +111,15 @@ jobs:
         alert_type: failed
         message: "((foundation)) failed to lock."
       
-
+- name: errand-lock-((foundation))
+  plan:
+  - put: lock
+    params: {acquire: true}
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to lock."
   
 - name: apply-product-changes
   plan:
@@ -116,6 +134,47 @@ jobs:
         - get: lock
           passed:
             - lock-((foundation))
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: apply-product-changes
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/apply-changes.yml
+      input_mapping:
+        env: configuration
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) apply changes failed."
+
+- name: errand-apply-product-changes
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: lock
+          passed:
+            - errand-lock-((foundation))
           trigger: true
     - task: credhub-interpolate
       image: platform-automation-image
@@ -164,3 +223,294 @@ jobs:
       params:
         alert_type: success
         text: "((foundation)) apply changes succeeded."
+
+- name: errand-unlock-((foundation))
+  serial: true
+  plan:
+  - get: lock
+    passed:
+      - upgrade-all-mysql-instances
+    trigger: true
+  - put: lock
+    params:
+      release: lock
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to unlock."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "((foundation)) apply changes succeeded."
+
+- name: upgrade-all-rabbitmq-instances
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: lock
+          passed:
+            - errand-apply-product-changes
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: interpolated-files
+    - task: staged-config
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/staged-config.yml
+      params:
+        PRODUCT_NAME: p-rabbitmq
+        ENV_FILE: ((foundation))/env/env.yml
+      input_mapping:
+        env: interpolated-files
+      output_mapping:
+        generated-config: generated-config
+    - task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errand.yml
+      input_mapping:
+        env: interpolated-files
+        config: generated-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: upgrade-all-service-instances
+        CONFIG_FILE: p-rabbitmq.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) rabbitmq service instance errand failed."
+
+- name: upgrade-all-mysql-instances
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: lock
+          passed:
+            - upgrade-all-pks-instances
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: interpolated-files
+    - task: staged-config
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/staged-config.yml
+      params:
+        PRODUCT_NAME: pivotal-mysql
+        ENV_FILE: ((foundation))/env/env.yml
+      input_mapping:
+        env: interpolated-files
+      output_mapping:
+        generated-config: generated-config
+    - task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errand.yml
+      input_mapping:
+        env: interpolated-files
+        config: generated-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: upgrade-all-service-instances
+        CONFIG_FILE: pivotal-mysql.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) mysql service instance errand failed."
+  
+- name: upgrade-all-pks-instances
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: lock
+          passed:
+            - upgrade-all-pcc-instances
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: interpolated-files
+    - task: staged-config
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/staged-config.yml
+      params:
+        PRODUCT_NAME: pivotal-container-service
+        ENV_FILE: ((foundation))/env/env.yml
+      input_mapping:
+        env: interpolated-files
+      output_mapping:
+        generated-config: generated-config
+    - task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errand.yml
+      input_mapping:
+        env: interpolated-files
+        config: generated-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: upgrade-all-service-instances
+        CONFIG_FILE: pivotal-container-service.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) pks service instance errand failed."
+  
+- name: upgrade-all-pcc-instances
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: lock
+          passed:
+            - upgrade-all-redis-instances
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: interpolated-files
+    - task: staged-config
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/staged-config.yml
+      params:
+        PRODUCT_NAME: p-cloudcache
+        ENV_FILE: ((foundation))/env/env.yml
+      input_mapping:
+        env: interpolated-files
+      output_mapping:
+        generated-config: generated-config
+    - task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errand.yml
+      input_mapping:
+        env: interpolated-files
+        config: generated-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: upgrade-all-service-instances
+        CONFIG_FILE: p-cloudcache.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) pcc service instance errand failed."
+  
+- name: upgrade-all-redis-instances
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: lock
+          passed:
+            - upgrade-all-rabbitmq-instances
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: interpolated-files
+    - task: staged-config
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/staged-config.yml
+      params:
+        PRODUCT_NAME: p-redis
+        ENV_FILE: ((foundation))/env/env.yml
+      input_mapping:
+        env: interpolated-files
+      output_mapping:
+        generated-config: generated-config
+    - task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errand.yml
+      input_mapping:
+        env: interpolated-files
+        config: generated-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: upgrade-all-service-instances
+        CONFIG_FILE: p-redis.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) redis service instance errand failed."
