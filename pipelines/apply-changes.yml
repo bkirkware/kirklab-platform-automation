@@ -5,6 +5,11 @@ groups:
       - lock-((foundation))
       - apply-product-changes
       - unlock-((foundation))
+  - name: recreate-all-apply
+    jobs: 
+      - recreate-lock-((foundation))
+      - apply-product-changes-recreate-all
+      - recreate-unlock-((foundation))
   - name: apply-with-all-service-instances
     jobs: 
       - errand-lock-((foundation))
@@ -110,6 +115,16 @@ jobs:
       params:
         alert_type: failed
         message: "((foundation)) failed to lock."
+
+- name: recreate-lock-((foundation))
+  plan:
+  - put: lock
+    params: {acquire: true}
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to lock."
       
 - name: errand-lock-((foundation))
   plan:
@@ -156,6 +171,48 @@ jobs:
         env: configuration
       params:
         ENV_FILE: ((foundation))/env/env.yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) apply changes failed."
+
+- name: apply-product-changes-recreate-all
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: lock
+          passed:
+            - recreate-lock-((foundation))
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: configuration
+    - task: apply-product-changes
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/apply-changes.yml
+      input_mapping:
+        env: configuration
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        RECREATE: true
       on_failure:
         put: notify
         params:
@@ -209,6 +266,27 @@ jobs:
   - get: lock
     passed:
       - apply-product-changes
+    trigger: true
+  - put: lock
+    params:
+      release: lock
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to unlock."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "((foundation)) apply changes succeeded."
+
+- name: recreate-unlock-((foundation))
+  serial: true
+  plan:
+  - get: lock
+    passed:
+      - apply-product-changes-recreate-all
     trigger: true
   - put: lock
     params:

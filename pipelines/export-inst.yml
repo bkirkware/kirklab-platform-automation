@@ -123,6 +123,15 @@ jobs:
         CREDHUB_SERVER: ((credhub-server))
         PREFIX: /((foundation))
         ENV_FILE: ((foundation))/env/env.yml
+    #- task: prepare-tasks-with-secrets
+    #  file: platform-automation-tasks/tasks/prepare-tasks-with-secrets.yml
+    #  input_mapping:
+    #    tasks: platform-automation-tasks
+    #    config: env
+    #  output_mapping:
+    #    tasks: platform-automation-tasks
+    #  params:
+    #    CONFIG_PATHS: ((foundation))/env
     - task: export-installation
       image: platform-automation-image
       file: platform-automation-tasks/tasks/export-installation.yml
