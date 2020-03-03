@@ -511,21 +511,22 @@ jobs:
         env: interpolated-files
       output_mapping:
         generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: deploy-notifications
-        CONFIG_FILE: ((product_slug)).yml
-      on_failure:
-        put: notify
+    - try:
+        task: run-errand
+        image: platform-automation-image
+        file: configuration/custom-tasks/run-errand.yml
+        input_mapping:
+          env: interpolated-files
+          config: generated-config
         params:
-          alert_type: started
-          message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
+          ENV_FILE: ((foundation))/env/env.yml
+          ERRAND_NAME: deploy-notifications
+          CONFIG_FILE: ((product_slug)).yml
+        on_failure:
+          put: notify
+          params:
+            alert_type: started
+            message: "((foundation)) ((product_shortname)) errand failed, but pipeline continues."
   
 - name: deploy-notifications-ui
   plan:
