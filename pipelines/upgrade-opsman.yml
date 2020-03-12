@@ -151,6 +151,11 @@ jobs:
       params:
         alert_type: failed
         message: "((foundation)) opsman failed to upload."
+    on_success:
+      put: notify
+      params:
+        alert_type: default
+        message: "((foundation)) ((product_shortname)) is on local storage and ready for upgrade."
 
 - name: lock-((foundation))
   plan:
@@ -164,7 +169,7 @@ jobs:
           message: "((foundation)) failed to lock."
     - get: opsman-product
       passed: [ fetch-pivnet-opsman ]
-      trigger: true
+      #trigger: true
 
 - name: export-installation
   plan:

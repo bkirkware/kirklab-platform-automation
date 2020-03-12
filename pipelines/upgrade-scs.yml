@@ -13,6 +13,8 @@ groups:
 - name: ad-hoc-jobs
   jobs: 
     - force-unlock
+    - export-staged-config
+    - configure-((product_shortname))
 
 
 
@@ -30,6 +32,16 @@ resource_types:
     tags: latest-final
 
 resources:
+
+- name: staged-config
+  type: s3
+  icon: file-document
+  source:
+    access_key_id: ((aws-access-key-id))
+    secret_access_key: ((aws-secret-access-key))
+    region_name: ((aws-region-name))
+    bucket: kirklab-platform-automation-staged-config
+    versioned_file: ((foundation))/((product_shortname))/((product_slug)).yml
 
 - name: notify
   type: slack-alert
@@ -184,6 +196,11 @@ jobs:
       params:
         alert_type: failed
         message: "((foundation)) ((product_shortname)) failed to upload."
+    on_success:
+      put: notify
+      params:
+        alert_type: default
+        message: "((foundation)) ((product_shortname)) is on local storage and ready for upgrade."
 
 - name: lock-((foundation))
   plan:
@@ -197,7 +214,7 @@ jobs:
           message: "((foundation)) failed to lock."
     - get: ((product_shortname))-product
       passed: [ fetch-pivnet-((product_shortname)) ]
-      trigger: true
+      #trigger: true
 
 - name: fetch-local-((product_shortname))
   plan:
@@ -489,3 +506,78 @@ jobs:
       params:
         alert_type: success
         text: "((foundation)) ((product_shortname)) upgrade succeeded."
+
+- name: export-staged-config
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: configuration
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub-client))
+      CREDHUB_SECRET: ((credhub-secret))
+      CREDHUB_SERVER: ((credhub-server))
+      CREDHUB_CA_CERT: ((credhub-ca-cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))"
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: interpolated-files
+  - task: staged-config
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/staged-config.yml
+    params:
+      PRODUCT_NAME: ((product_slug)) 
+      ENV_FILE: ((foundation))/env/env.yml
+      SUBSTITUTE_CREDENTIALS_WITH_PLACEHOLDERS: false
+    input_mapping:
+      env: interpolated-files
+    output_mapping:
+      generated-config: generated-config
+  - put: staged-config
+    params:
+      file: generated-config/((product_slug)).yml
+
+
+- name: configure-((product_shortname))
+  plan:
+  - in_parallel:
+    - get: platform-automation-image
+      params:
+        unpack: true
+    - get: platform-automation-tasks
+      params:
+        unpack: true
+    - get: configuration
+    - get: staged-config
+  - task: credhub-interpolate
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/credhub-interpolate.yml
+    params:
+      CREDHUB_CLIENT: ((credhub-client))
+      CREDHUB_SECRET: ((credhub-secret))
+      CREDHUB_SERVER: ((credhub-server))
+      CREDHUB_CA_CERT: ((credhub-ca-cert))
+      PREFIX: /((foundation))
+      INTERPOLATION_PATH: "((foundation))"
+    input_mapping:
+      files: configuration
+    output_mapping:
+      interpolated-files: interpolated-files
+  - task: configure-((product_shortname))
+    image: platform-automation-image
+    file: platform-automation-tasks/tasks/configure-product.yml
+    input_mapping:
+      config: staged-config
+      env: interpolated-files
+    params:
+      CONFIG_FILE: ((product_slug)).yml
+      ENV_FILE: ((foundation))/env/env.yml
