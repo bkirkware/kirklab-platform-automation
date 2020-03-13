@@ -15,8 +15,6 @@ groups:
     - export-staged-config
     - configure-((product_shortname))
 
-
-
 resource_types:
 
 - name: slack-alert
@@ -97,7 +95,7 @@ resources:
     secret_access_key: ((minio-secret-access-key))
     endpoint: ((minio-endpoint))
     bucket: ((foundation))-pivnet-products
-    regexp: \[((product_slug)),(.*)\]((product_slug))-.*\.pivotal
+    regexp: \[((product_slug)),(.*)\]((product_slug))_.*\.pivotal
     disable_ssl: true
 
 - name: ((product_shortname))-stemcell-config
