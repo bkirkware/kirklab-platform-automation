@@ -4,8 +4,8 @@ cd ~/work/git/bkirkware/kirklab-platform-automation/scripts
 fly -t kirklab-control set-pipeline -p get-pa -c ../pipelines/get-pa.yml
 
 ## Ops Managers
-fly -t kirklab-control set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control -v product_version="^2\.8\..*$"
-fly -t kirklab-control set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-opsman.yml -v foundation=kirklab -v product_version="^2\.8\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control -v product_shortname=opsman -v product_version="^2\.8\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-opsman.yml -v foundation=kirklab -v product_shortname=opsman -v product_version="^2\.8\..*$"
 
 ## Tiles
 fly -t kirklab-control set-pipeline -p upgrade-scs -c ../pipelines/upgrade-scs.yml -v foundation=kirklab -v product_slug=p-spring-cloud-services -v product_shortname=scs -v product_version="^2\.1\..*$"
