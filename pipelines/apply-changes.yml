@@ -10,13 +10,13 @@ groups:
       - recreate-lock-((foundation))
       - apply-product-changes-recreate-all
       - recreate-unlock-((foundation))
-  - name: apply-with-all-service-instances
+  - name: recreate-all-apply-w-svc-inst
     jobs: 
       - errand-lock-((foundation))
-      - errand-apply-product-changes
+      - errand-apply-product-changes-recreate-all
       - upgrade-all-rabbitmq-instances
-      - upgrade-all-pcc-instances
-      - upgrade-all-redis-instances
+      #- upgrade-all-pcc-instances
+      #- upgrade-all-redis-instances
       - upgrade-all-pks-instances
       - upgrade-all-mysql-instances
       - errand-unlock-((foundation))
@@ -219,7 +219,7 @@ jobs:
           alert_type: failed
           message: "((foundation)) apply changes failed."
 
-- name: errand-apply-product-changes
+- name: errand-apply-product-changes-recreate-all
   plan:
     - in_parallel:
         - get: platform-automation-image
@@ -254,6 +254,7 @@ jobs:
         env: configuration
       params:
         ENV_FILE: ((foundation))/env/env.yml
+        RECREATE: true
       on_failure:
         put: notify
         params:
@@ -335,7 +336,7 @@ jobs:
         - get: configuration
         - get: lock
           passed:
-            - errand-apply-product-changes
+            - errand-apply-product-changes-recreate-all
           trigger: true
     - task: credhub-interpolate
       image: platform-automation-image
@@ -443,7 +444,8 @@ jobs:
         - get: configuration
         - get: lock
           passed:
-            - upgrade-all-pcc-instances
+            #- upgrade-all-pcc-instances
+            - upgrade-all-rabbitmq-instances
           trigger: true
     - task: credhub-interpolate
       image: platform-automation-image
@@ -485,110 +487,110 @@ jobs:
           alert_type: failed
           message: "((foundation)) pks service instance errand failed."
   
-- name: upgrade-all-pcc-instances
-  plan:
-    - in_parallel:
-        - get: platform-automation-image
-          params:
-            unpack: true
-        - get: platform-automation-tasks
-          params:
-            unpack: true
-        - get: configuration
-        - get: lock
-          passed:
-            - upgrade-all-redis-instances
-          trigger: true
-    - task: credhub-interpolate
-      image: platform-automation-image
-      file: platform-automation-tasks/tasks/credhub-interpolate.yml
-      params:
-        CREDHUB_CLIENT: ((credhub-client))
-        CREDHUB_SECRET: ((credhub-secret))
-        CREDHUB_SERVER: ((credhub-server))
-        CREDHUB_CA_CERT: ((credhub-ca-cert))
-        PREFIX: /((foundation))
-        INTERPOLATION_PATH: "((foundation))"
-      input_mapping:
-        files: configuration
-      output_mapping:
-        interpolated-files: interpolated-files
-    - task: staged-config
-      image: platform-automation-image
-      file: platform-automation-tasks/tasks/staged-config.yml
-      params:
-        PRODUCT_NAME: p-cloudcache
-        ENV_FILE: ((foundation))/env/env.yml
-      input_mapping:
-        env: interpolated-files
-      output_mapping:
-        generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: upgrade-all-service-instances
-        CONFIG_FILE: p-cloudcache.yml
-      on_failure:
-        put: notify
-        params:
-          alert_type: failed
-          message: "((foundation)) pcc service instance errand failed."
+#- name: upgrade-all-pcc-instances
+#  plan:
+#    - in_parallel:
+#        - get: platform-automation-image
+#          params:
+#            unpack: true
+#        - get: platform-automation-tasks
+#          params:
+#            unpack: true
+#        - get: configuration
+#        - get: lock
+#          passed:
+#            - upgrade-all-redis-instances
+#          trigger: true
+#    - task: credhub-interpolate
+#      image: platform-automation-image
+#      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+#      params:
+#        CREDHUB_CLIENT: ((credhub-client))
+#        CREDHUB_SECRET: ((credhub-secret))
+#        CREDHUB_SERVER: ((credhub-server))
+#        CREDHUB_CA_CERT: ((credhub-ca-cert))
+#        PREFIX: /((foundation))
+#        INTERPOLATION_PATH: "((foundation))"
+#      input_mapping:
+#        files: configuration
+#      output_mapping:
+#        interpolated-files: interpolated-files
+#    - task: staged-config
+#      image: platform-automation-image
+#      file: platform-automation-tasks/tasks/staged-config.yml
+#      params:
+#        PRODUCT_NAME: p-cloudcache
+#        ENV_FILE: ((foundation))/env/env.yml
+#      input_mapping:
+#        env: interpolated-files
+#      output_mapping:
+#        generated-config: generated-config
+#    - task: run-errand
+#      image: platform-automation-image
+#      file: configuration/custom-tasks/run-errand.yml
+#      input_mapping:
+#        env: interpolated-files
+#        config: generated-config
+#      params:
+#        ENV_FILE: ((foundation))/env/env.yml
+#        ERRAND_NAME: upgrade-all-service-instances
+#        CONFIG_FILE: p-cloudcache.yml
+#      on_failure:
+#        put: notify
+#        params:
+#          alert_type: failed
+#          message: "((foundation)) pcc service instance errand failed."
   
-- name: upgrade-all-redis-instances
-  plan:
-    - in_parallel:
-        - get: platform-automation-image
-          params:
-            unpack: true
-        - get: platform-automation-tasks
-          params:
-            unpack: true
-        - get: configuration
-        - get: lock
-          passed:
-            - upgrade-all-rabbitmq-instances
-          trigger: true
-    - task: credhub-interpolate
-      image: platform-automation-image
-      file: platform-automation-tasks/tasks/credhub-interpolate.yml
-      params:
-        CREDHUB_CLIENT: ((credhub-client))
-        CREDHUB_SECRET: ((credhub-secret))
-        CREDHUB_SERVER: ((credhub-server))
-        CREDHUB_CA_CERT: ((credhub-ca-cert))
-        PREFIX: /((foundation))
-        INTERPOLATION_PATH: "((foundation))"
-      input_mapping:
-        files: configuration
-      output_mapping:
-        interpolated-files: interpolated-files
-    - task: staged-config
-      image: platform-automation-image
-      file: platform-automation-tasks/tasks/staged-config.yml
-      params:
-        PRODUCT_NAME: p-redis
-        ENV_FILE: ((foundation))/env/env.yml
-      input_mapping:
-        env: interpolated-files
-      output_mapping:
-        generated-config: generated-config
-    - task: run-errand
-      image: platform-automation-image
-      file: configuration/custom-tasks/run-errand.yml
-      input_mapping:
-        env: interpolated-files
-        config: generated-config
-      params:
-        ENV_FILE: ((foundation))/env/env.yml
-        ERRAND_NAME: upgrade-all-service-instances
-        CONFIG_FILE: p-redis.yml
-      on_failure:
-        put: notify
-        params:
-          alert_type: failed
-          message: "((foundation)) redis service instance errand failed."
+#- name: upgrade-all-redis-instances
+#  plan:
+#    - in_parallel:
+#        - get: platform-automation-image
+#          params:
+#            unpack: true
+#        - get: platform-automation-tasks
+#          params:
+#            unpack: true
+#        - get: configuration
+#        - get: lock
+#          passed:
+#            - upgrade-all-rabbitmq-instances
+#          trigger: true
+#    - task: credhub-interpolate
+#      image: platform-automation-image
+#      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+#      params:
+#        CREDHUB_CLIENT: ((credhub-client))
+#        CREDHUB_SECRET: ((credhub-secret))
+#        CREDHUB_SERVER: ((credhub-server))
+#        CREDHUB_CA_CERT: ((credhub-ca-cert))
+#        PREFIX: /((foundation))
+#        INTERPOLATION_PATH: "((foundation))"
+#      input_mapping:
+#        files: configuration
+#      output_mapping:
+#        interpolated-files: interpolated-files
+#    - task: staged-config
+#      image: platform-automation-image
+#      file: platform-automation-tasks/tasks/staged-config.yml
+#      params:
+#        PRODUCT_NAME: p-redis
+#        ENV_FILE: ((foundation))/env/env.yml
+#      input_mapping:
+#        env: interpolated-files
+#      output_mapping:
+#        generated-config: generated-config
+#    - task: run-errand
+#      image: platform-automation-image
+#      file: configuration/custom-tasks/run-errand.yml
+#      input_mapping:
+#        env: interpolated-files
+#        config: generated-config
+#      params:
+#        ENV_FILE: ((foundation))/env/env.yml
+#        ERRAND_NAME: upgrade-all-service-instances
+#        CONFIG_FILE: p-redis.yml
+#      on_failure:
+#        put: notify
+#        params:
+#          alert_type: failed
+#          message: "((foundation)) redis service instance errand failed."
