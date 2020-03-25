@@ -9,6 +9,7 @@ groups:
     - configure-((product_shortname))
     - apply-product-changes
     - unlock-((foundation))
+    - upgrade-all-service-instances
 
 
 
@@ -35,7 +36,7 @@ resources:
     secret_access_key: ((aws-secret-access-key))
     region_name: ((aws-region-name))
     bucket: kirklab-platform-automation-staged-config
-    versioned_file: ((foundation))/((product_shortname))/((product_slug))-((product_version)).yml
+    versioned_file: ((foundation))/((product_shortname))/((product_slug)).yml
 
 - name: notify
   type: slack-alert
@@ -126,7 +127,6 @@ resources:
 jobs:
 
 
-
 - name: fetch-pivnet-((product_shortname))
   plan:
   - in_parallel:
@@ -157,7 +157,7 @@ jobs:
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product.yml
     params:
-      CONFIG_FILE: ((foundation))/download-product-configs/((product_shortname))-((product_version)).yml
+      CONFIG_FILE: ((foundation))/download-product-configs/((product_shortname)).yml
     input_mapping:
       config: configuration
     output_mapping: 
@@ -184,6 +184,11 @@ jobs:
       params:
         alert_type: failed
         message: "((foundation)) ((product_shortname)) failed to upload."
+    on_success:
+      put: notify
+      params:
+        alert_type: default
+        message: "((foundation)) ((product_shortname)) is on local storage and ready for upgrade."
 
 - name: lock-((foundation))
   plan:
@@ -230,7 +235,7 @@ jobs:
     image: platform-automation-image
     file: platform-automation-tasks/tasks/download-product-s3.yml
     params:
-      CONFIG_FILE: ((foundation))/download-product-configs/((product_shortname))-((product_version)).yml
+      CONFIG_FILE: ((foundation))/download-product-configs/((product_shortname)).yml
     input_mapping:
       config: configuration
     output_mapping: 
@@ -356,13 +361,67 @@ jobs:
         params:
           alert_type: failed
           message: "((foundation)) apply changes failed."
+  
+- name: upgrade-all-service-instances
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: ((product_shortname))-product
+          passed:
+            - apply-product-changes
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: interpolated-files
+    - task: staged-config
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/staged-config.yml
+      params:
+        PRODUCT_NAME: ((product_slug))
+        ENV_FILE: ((foundation))/env/env.yml
+      input_mapping:
+        env: interpolated-files
+      output_mapping:
+        generated-config: generated-config
+    - task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errand.yml
+      input_mapping:
+        env: interpolated-files
+        config: generated-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: upgrade-all-service-instances
+        CONFIG_FILE: ((product_slug)).yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) ((product_shortname)) errand failed."
 
 - name: unlock-((foundation))
   serial: true
   plan:
   - get: ((product_shortname))-product
     passed:
-      - apply-product-changes
+      - upgrade-all-service-instances
     trigger: true
   - get: lock
   - put: lock
@@ -377,7 +436,7 @@ jobs:
       put: notify
       params:
         alert_type: success
-        text: "((foundation)) ((product_shortname)) install succeeded."
+        text: "((foundation)) ((product_shortname)) upgrade succeeded."
 
 - name: configure-((product_shortname))
   plan:
@@ -415,5 +474,5 @@ jobs:
       config: staged-config
       env: interpolated-files
     params:
-      CONFIG_FILE: ((product_slug))-((product_version)).yml
+      CONFIG_FILE: ((product_slug)).yml
       ENV_FILE: ((foundation))/env/env.yml

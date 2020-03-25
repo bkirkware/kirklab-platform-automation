@@ -46,9 +46,12 @@ fly -t kirklab-control set-pipeline -p control-export-inst -c ../pipelines/expor
 fly -t kirklab-control set-pipeline -p backup-pks -c ../hidden-pipelines/pks-bbr.yml
 
 # Install Pipelines
-fly -t kirklab-control set-pipeline -p install-pks-1.6.0 -c ../pipelines/install-pks.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.6\.0$"
+fly -t kirklab-control set-pipeline -p install-pks-1.6.0 -c ../pipelines/install-pks.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version='1.6.0'
+fly -t kirklab-control set-pipeline -p install-pks-1.5.2 -c ../pipelines/install-pks.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version='1.5.2'
 fly -t kirklab-control set-pipeline -p install-harbor -c ../pipelines/install-harbor.yml -v foundation=kirklab -v product_slug=harbor-container-registry -v product_shortname=harbor -v product_version="^1\.10\..*$"
 
+# Upgrade with Configure
+fly -t kirklab-control set-pipeline -p upgrade-pks-1.6 -c ../pipelines/upgrade-pks-w-configure.yml -v foundation=kirklab -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.6\..*$"
 
 # Unpause
 fly -t kirklab-control unpause-pipeline -p get-pa

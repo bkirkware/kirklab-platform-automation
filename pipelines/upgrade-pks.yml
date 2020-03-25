@@ -219,7 +219,7 @@ jobs:
           message: "((foundation)) failed to lock."
     - get: ((product_shortname))-product
       passed: [ fetch-pivnet-((product_shortname)) ]
-      trigger: true
+      #trigger: true
 
 - name: fetch-local-((product_shortname))
   plan:
