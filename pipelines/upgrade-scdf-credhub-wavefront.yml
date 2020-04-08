@@ -14,6 +14,11 @@ groups:
     - force-unlock
     - export-staged-config
     - configure-((product_shortname))
+- name: errand-pipeline
+  jobs: 
+    - errand-lock-((foundation))
+    - errand-deploy-all
+    - errand-unlock-((foundation))
 
 
 
@@ -523,3 +528,89 @@ jobs:
     params:
       CONFIG_FILE: ((product_slug)).yml
       ENV_FILE: ((foundation))/env/env.yml
+
+- name: errand-lock-((foundation))
+  plan:
+  - in_parallel:
+    - put: lock
+      params: {acquire: true}
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) failed to lock."
+
+- name: errand-deploy-all
+  plan:
+    - in_parallel:
+        - get: platform-automation-image
+          params:
+            unpack: true
+        - get: platform-automation-tasks
+          params:
+            unpack: true
+        - get: configuration
+        - get: lock
+          passed:
+            - errand-lock-((foundation))
+          trigger: true
+    - task: credhub-interpolate
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      params:
+        CREDHUB_CLIENT: ((credhub-client))
+        CREDHUB_SECRET: ((credhub-secret))
+        CREDHUB_SERVER: ((credhub-server))
+        CREDHUB_CA_CERT: ((credhub-ca-cert))
+        PREFIX: /((foundation))
+        INTERPOLATION_PATH: "((foundation))"
+      input_mapping:
+        files: configuration
+      output_mapping:
+        interpolated-files: interpolated-files
+    - task: staged-config
+      image: platform-automation-image
+      file: platform-automation-tasks/tasks/staged-config.yml
+      params:
+        PRODUCT_NAME: ((product_slug))
+        ENV_FILE: ((foundation))/env/env.yml
+      input_mapping:
+        env: interpolated-files
+      output_mapping:
+        generated-config: generated-config
+    - task: run-errand
+      image: platform-automation-image
+      file: configuration/custom-tasks/run-errand.yml
+      input_mapping:
+        env: interpolated-files
+        config: generated-config
+      params:
+        ENV_FILE: ((foundation))/env/env.yml
+        ERRAND_NAME: deploy-all
+        CONFIG_FILE: ((product_slug)).yml
+      on_failure:
+        put: notify
+        params:
+          alert_type: failed
+          message: "((foundation)) ((product_shortname)) errand failed."
+
+- name: errand-unlock-((foundation))
+  serial: true
+  plan:
+  - get: lock
+    passed:
+      - errand-deploy-all
+    trigger: true
+  - put: lock
+    params:
+      release: lock
+    on_failure:
+      put: notify
+      params:
+        alert_type: failed
+        message: "((foundation)) failed to unlock."
+    on_success:
+      put: notify
+      params:
+        alert_type: success
+        text: "((foundation)) ((product_shortname)) errand(s) succeeded."
