@@ -4,7 +4,7 @@ cd ~/work/git/bkirkware/kirklab-platform-automation/scripts
 fly -t kirklab-control set-pipeline -p get-pa -c ../pipelines/get-pa.yml
 
 ## Ops Managers
-fly -t kirklab-control set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control -v product_shortname=opsman -v product_version="^2\.8\..*$"
+fly -t kirklab-control set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control -v product_shortname=opsman -v product_version="^2\.9\..*$"
 fly -t kirklab-control set-pipeline -p upgrade-opsman -c ../pipelines/upgrade-opsman.yml -v foundation=kirklab -v product_shortname=opsman -v product_version="^2\.8\..*$"
 
 ## Tiles
@@ -77,3 +77,14 @@ fly -t kirklab-control unpause-pipeline -p apply-changes
 fly -t kirklab-control unpause-pipeline -p control-apply-changes
 fly -t kirklab-control unpause-pipeline -p export-inst
 fly -t kirklab-control unpause-pipeline -p control-export-inst
+
+
+
+
+
+
+fly -t kirklab-chewbacca set-pipeline -p get-pa -c ../pipelines/get-pa.yml
+fly -t kirklab-chewbacca set-pipeline -p upgrade-control-opsman -c ../pipelines/upgrade-control-opsman.yml -v foundation=kirklab-control -v product_shortname=opsman -v product_version="^2\.9\..*$"
+fly -t kirklab-chewbacca set-pipeline -p upgrade-control-pks -c ../pipelines/upgrade-control-pks.yml -v foundation=kirklab-control -v product_slug=pivotal-container-service -v product_shortname=pks -v product_version="^1\.7\..*$"
+fly -t kirklab-chewbacca set-pipeline -p control-export-inst -c ../pipelines/export-inst.yml -v foundation=kirklab-control
+fly -t kirklab-chewbacca set-pipeline -p control-apply-changes -c ../pipelines/control-apply-changes.yml -v foundation=kirklab-control

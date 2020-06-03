@@ -124,7 +124,7 @@ resources:
 
 - name: configuration
   type: git
-  icon: github-circle
+  icon: github
   source:
     uri: ((platform-automation-pipelines-kirklab-env))
     private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly-private-key))

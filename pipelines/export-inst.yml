@@ -42,7 +42,7 @@ resources:
     api_token: ((pivnet-refresh-token))
 - name: env
   type: git
-  icon: github-circle
+  icon: github
   source:
     uri: ((platform-automation-pipelines-kirklab-env))
     private_key: ((platform-automation-pipelines-kirklab-deploy-key-readonly-private-key))
@@ -108,30 +108,34 @@ jobs:
       passed:
         - lock-((foundation))
       trigger: true
-    - task: credhub-interpolate
+    - task: prepare-tasks-with-secrets
       image: platform-automation-image
-      file: platform-automation-tasks/tasks/credhub-interpolate.yml
+      file: platform-automation-tasks/tasks/prepare-tasks-with-secrets.yml
       input_mapping:
-        files: env
+        tasks: platform-automation-tasks
+        config: env
+    #    vars: env  # required only if using vars
       output_mapping:
-        interpolated-files: env
+        tasks: platform-automation-tasks
       params:
-        # all required
-        CREDHUB_CA_CERT: ((credhub-ca-cert))
-        CREDHUB_CLIENT: ((credhub-client))
-        CREDHUB_SECRET: ((credhub-secret))
-        CREDHUB_SERVER: ((credhub-server))
-        PREFIX: /((foundation))
+        CONFIG_PATHS: config
         ENV_FILE: ((foundation))/env/env.yml
-    #- task: prepare-tasks-with-secrets
-    #  file: platform-automation-tasks/tasks/prepare-tasks-with-secrets.yml
+    #    VARS_PATHS: ((foundation))/vars # required only if using vars
+    #- task: credhub-interpolate
+    #  image: platform-automation-image
+    #  file: platform-automation-tasks/tasks/credhub-interpolate.yml
     #  input_mapping:
-    #    tasks: platform-automation-tasks
-    #    config: env
+    #    files: env
     #  output_mapping:
-    #    tasks: platform-automation-tasks
+    #    interpolated-files: env
     #  params:
-    #    CONFIG_PATHS: ((foundation))/env
+    #    # all required
+    #    CREDHUB_CA_CERT: ((credhub-ca-cert))
+    #    CREDHUB_CLIENT: ((credhub-client))
+    #    CREDHUB_SECRET: ((credhub-secret))
+    #    CREDHUB_SERVER: ((credhub-server))
+    #    PREFIX: /((foundation))
+    #    ENV_FILE: ((foundation))/env/env.yml
     - task: export-installation
       image: platform-automation-image
       file: platform-automation-tasks/tasks/export-installation.yml
