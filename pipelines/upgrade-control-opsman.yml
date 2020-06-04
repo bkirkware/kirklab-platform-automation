@@ -135,7 +135,7 @@ jobs:
     output_mapping:
       tasks: platform-automation-tasks
     params:
-      CONFIG_PATHS: "((foundation))"
+      CONFIG_PATHS: config
   #- task: credhub-interpolate
   #  image: platform-automation-image
   #  file: platform-automation-tasks/tasks/credhub-interpolate.yml
@@ -270,7 +270,7 @@ jobs:
     output_mapping:
       tasks: platform-automation-tasks
     params:
-      CONFIG_PATHS: "((foundation))"
+      CONFIG_PATHS: config
   #- task: credhub-interpolate
   #  image: platform-automation-image
   #  file: platform-automation-tasks/tasks/credhub-interpolate.yml
@@ -340,7 +340,7 @@ jobs:
     output_mapping:
       tasks: platform-automation-tasks
     params:
-      CONFIG_PATHS: "((foundation))"
+      CONFIG_PATHS: config
   #- task: credhub-interpolate
   #  image: platform-automation-image
   #  file: platform-automation-tasks/tasks/credhub-interpolate.yml
